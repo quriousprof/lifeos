@@ -64,10 +64,11 @@ export const gmailApi = {
   getStatus(): Promise<GmailStatus> {
     return request<GmailStatus>('/connectors/gmail/status')
   },
-  fetchEmails(limit = 5): Promise<GmailFetchResult> {
-    return request<GmailFetchResult>(`/connectors/gmail/fetch?limit=${limit}`, {
-      method: 'POST',
-    })
+  fetchEmails(limit = 5, poll = false): Promise<GmailFetchResult> {
+    return request<GmailFetchResult>(
+      `/connectors/gmail/fetch?limit=${limit}&poll=${poll}`,
+      { method: 'POST' },
+    )
   },
   disconnect(): Promise<GmailStatus> {
     return request<GmailStatus>('/connectors/gmail/disconnect', { method: 'POST' })
