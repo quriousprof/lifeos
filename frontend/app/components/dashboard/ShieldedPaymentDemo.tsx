@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
+import { BrandIcon } from '@/app/components/ui/BrandIcon'
 import { ICON } from '@/app/lib/icons'
 import type { ShieldedStatus } from '@/app/lib/mock'
 
@@ -81,11 +82,17 @@ export function ShieldedPaymentDemo() {
             <div className="font-mono text-xl text-shielded mb-1">
               ${displayAmount.toFixed(2)} USD ≈ {zecAmount} ZEC
             </div>
-            <div className="font-body text-sm text-mist">
-              {authorizedIntent?.productName ?? 'Airalo SG 3GB'} — Bitrefill / Airalo
+            <div className="flex items-center gap-1.5 font-body text-sm text-mist">
+              <BrandIcon slug="bitrefill" size={14} className="rounded-sm shrink-0" />
+              <span>
+                {authorizedIntent?.productName ?? 'Airalo SG 3GB'} — Bitrefill / Airalo
+              </span>
             </div>
           </div>
-          <Badge variant="shielded">zcash testnet</Badge>
+          <div className="flex items-center gap-2">
+            <BrandIcon slug="zcash" size={18} className="rounded shrink-0" />
+            <Badge variant="shielded">zcash testnet</Badge>
+          </div>
         </div>
       </Card>
 
