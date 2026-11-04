@@ -7,7 +7,12 @@ authors = [
     { name = "Soham Ghugare", email = "soham.ghugare@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "fastapi>=0.162.0",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.16.2",
+    "uvicorn[standard]>=0.54.0",
+]
 
 [project.scripts]
 backend = "backend:main"
