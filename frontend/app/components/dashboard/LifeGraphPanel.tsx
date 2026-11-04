@@ -8,6 +8,7 @@ import { Badge } from '@/app/components/ui/Badge'
 import { StatusPill } from '@/app/components/ui/StatusPill'
 import { AnimatedCounter } from '@/app/components/ui/AnimatedCounter'
 import { ConfidenceMeter } from '@/app/components/ui/ConfidenceMeter'
+import { BrandIcon } from '@/app/components/ui/BrandIcon'
 import { ICON } from '@/app/lib/icons'
 
 function SectionHeader({
@@ -113,7 +114,10 @@ export function LifeGraphPanel() {
                   key={sub.id}
                   className="flex items-center gap-4 py-3 border-b border-line/50 flex-wrap"
                 >
-                  <span className="font-body text-sm text-mist min-w-32">{sub.provider}</span>
+                  <span className="flex items-center gap-2 font-body text-sm text-mist min-w-32">
+                    <BrandIcon slug={sub.provider} size={18} className="rounded shrink-0" />
+                    {sub.provider}
+                  </span>
                   <Badge variant="default">{sub.plan}</Badge>
                   <span className="font-mono text-sm text-mist">
                     ${sub.amount.toFixed(2)}/mo
@@ -151,7 +155,10 @@ export function LifeGraphPanel() {
                   key={p.id}
                   className="flex items-center gap-4 py-3 border-b border-line/50 flex-wrap"
                 >
-                  <span className="font-body text-sm text-mist min-w-32">{p.merchant}</span>
+                  <span className="flex items-center gap-2 font-body text-sm text-mist min-w-32">
+                    <BrandIcon slug={p.merchant} size={18} className="rounded shrink-0" />
+                    {p.merchant}
+                  </span>
                   <span className="font-body text-sm text-mist-dim">{p.product}</span>
                   <span className="font-mono text-sm text-mist">${p.amount.toFixed(2)}</span>
                   <span className="font-mono text-xs text-mist-dim">
