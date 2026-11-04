@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from . import db
+import db
 
 
 def _now() -> str:

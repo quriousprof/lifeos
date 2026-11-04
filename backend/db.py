@@ -8,7 +8,7 @@ import sqlite3
 import threading
 from typing import Any
 
-from .config import settings
+from config import settings
 
 _lock = threading.Lock()
 _conn: sqlite3.Connection | None = None

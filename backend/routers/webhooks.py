@@ -7,8 +7,9 @@ import json
 
 from fastapi import APIRouter, Request
 
-from .. import audit, db
-from ..bitrefill import service
+import audit
+import db
+from bitrefill import service
 
 router = APIRouter(tags=["webhooks"])
 

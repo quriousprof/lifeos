@@ -9,10 +9,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from . import db
-from .bitrefill.client import BitrefillClient, BitrefillError
-from .config import settings
-from .routers import commerce, policy, webhooks
+import db
+from bitrefill.client import BitrefillClient, BitrefillError
+from config import settings
+from routers import commerce, policy, webhooks
 
 
 @asynccontextmanager

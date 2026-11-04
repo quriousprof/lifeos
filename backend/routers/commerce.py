@@ -2,9 +2,9 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from ..bitrefill import service
-from ..bitrefill.client import BitrefillError
-from ..models import IntentRequest, IntentResult, IntentView, Product
+from bitrefill import service
+from bitrefill.client import BitrefillError
+from models import IntentRequest, IntentResult, IntentView, Product
 
 router = APIRouter(tags=["commerce"])
 

@@ -2,8 +2,9 @@
 
 from fastapi import APIRouter
 
-from .. import audit, db
-from ..models import AuditView, Policy, PolicyPatch
+import audit
+import db
+from models import AuditView, Policy, PolicyPatch
 
 router = APIRouter(tags=["policy"])
 

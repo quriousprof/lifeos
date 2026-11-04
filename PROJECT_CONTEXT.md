@@ -148,7 +148,7 @@ app/
 
 **Status: Phase A shipped.** Python **FastAPI** service at `backend/` (uv, Python 3.13) with a **real** Bitrefill REST API v2 integration. Connectors (Gmail/Calendar/OAuth) remain mocked — only commerce is live.
 
-- Run: `cd backend && cp .env.example .env` (set `BITREFILL_API_KEY`) `&& uv run uvicorn backend.app:app --reload --port 8000`. See `backend/README.md`.
+- Run: `cd backend && cp .env.example .env` (set `BITREFILL_API_KEY`) `&& uv run main.py`. See `backend/README.md`.
 - **Agentic loop:** `propose → policy → re-quote → create invoice → reconcile (polling) → redemption → audit`. The agent proposes; `policy.py` decides (per-tx cap, monthly budget, merchant/category allowlist, kill switch) — caps in code, never a prompt. Idempotency key per intent → no duplicate orders. Paid ≠ delivered: polls each order to terminal state.
 - **Dev uses Bitrefill test products** (`test-gift-card-code`) — free, real API, real redemption codes; swap `product_id` + account balance → real buy.
 - Endpoints: `/health`, `/products/search`, `/products/{id}`, `/intents`, `/intents/{id}/execute`, `/orders/{id}`, `/policy`, `/kill-switch`, `/audit`. SQLite ledger (`backend/lifeos.db`, gitignored).

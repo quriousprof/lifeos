@@ -15,7 +15,7 @@ from typing import Any
 
 import httpx
 
-from ..config import settings
+from config import settings
 
 # Invoice statuses we treat as terminal (stop polling).
 TERMINAL_INVOICE_STATUSES = {"all_delivered", "not_delivered", "complete", "denied", "payment_error"}

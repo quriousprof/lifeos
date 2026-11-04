@@ -11,7 +11,7 @@ leg is planned (plan 03, phase B).
 cd backend
 cp .env.example .env     # then set BITREFILL_API_KEY (bitrefill.com/account/developers)
 uv sync
-uv run uvicorn backend.app:app --reload --port 8000
+uv run main.py           # starts uvicorn on :8000 (RELOAD=1 for autoreload)
 ```
 
 `.env` is gitignored. The API key can spend on the account — never commit it or expose it to the frontend.
@@ -53,7 +53,8 @@ product packages use `id` (not `package_id`), `value` is a string, `amount` is U
 ## Layout
 
 ```
-src/backend/
+backend/
+├── main.py           entrypoint — `uv run main.py`
 ├── app.py            FastAPI app, CORS, /health, lifespan
 ├── config.py         settings (.env)
 ├── db.py             SQLite: policy, intents, invoices, audit
