@@ -1,9 +1,8 @@
 # Life OS Backend
 
 FastAPI backend for Life OS. Real **Bitrefill** agentic-commerce rails (live REST API v2).
-Connectors (Gmail/Calendar/OAuth) stay mocked in the frontend; this service is the live
-commerce layer, with a deterministic autonomy policy enforced in code. Zcash shielded-payment
-leg is planned (plan 03, phase B).
+**Gmail** is a live read-only connector (real Google OAuth, `gmail.readonly`). Other connectors
+(Calendar) stay mocked in the frontend. Zcash shielded-payment leg is planned (plan 03, phase B).
 
 ## Setup
 
@@ -15,6 +14,28 @@ uv run main.py           # starts uvicorn on :8000 (RELOAD=1 for autoreload)
 ```
 
 `.env` is gitignored. The API key can spend on the account — never commit it or expose it to the frontend.
+
+
+## Gmail connector (Google OAuth, read-only)
+
+One-time Google Cloud setup:
+
+1. https://console.cloud.google.com → create/select a project.
+2. **APIs & Services → Library → Gmail API → Enable**.
+3. **OAuth consent screen**: User type **External**; add your Google account under
+   **Test users** (keeps the app in "Testing" — no verification needed). Add scope
+   `.../auth/gmail.readonly`.
+4. **Credentials → Create credentials → OAuth client ID → Web application**.
+   Authorized redirect URI: `http://localhost:8000/connectors/gmail/callback`.
+5. Copy the **Client ID** + **Client secret** into `backend/.env`
+   (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`).
+
+Scope is locked to `gmail.readonly` (no send/modify). Tokens persist server-side in
+SQLite (`oauth_tokens`); only `{connected, email}` is ever returned to the frontend.
+`/connectors/gmail/fetch` reads the 5 newest inbox emails and runs a deterministic
+keyword/regex trip extractor (`connectors/trip.py`) — no LLM, and it never buys. A
+detected Singapore trip hands a prompt to the existing commerce pipeline, which the
+autonomy policy still gates.
 
 ## Deploy
 
@@ -57,6 +78,11 @@ volume — the default SQLite file is wiped when an ephemeral container is repla
 | GET/PUT | `/policy` | read/update autonomy policy |
 | POST | `/kill-switch` | toggle global pause |
 | GET | `/audit?limit=` | append-only audit ledger |
+| GET | `/connectors/gmail/auth` | build Google consent URL (`?mode=redirect` to 302) |
+| GET | `/connectors/gmail/callback` | OAuth redirect target; posts result to opener, then closes |
+| GET | `/connectors/gmail/status` | `{connected, email, scopes}` |
+| POST | `/connectors/gmail/fetch?limit=5` | 5 newest emails + extracted trip signal |
+| POST | `/connectors/gmail/disconnect` | delete stored tokens |
 
 ## Notes on the live API (verified 2026-11-04)
 
@@ -77,5 +103,6 @@ backend/
 ├── policy.py         deterministic autonomy engine
 ├── audit.py          append-only ledger
 ├── bitrefill/        client.py (REST v2) + service.py (orchestration)
-└── routers/          commerce.py, policy.py, webhooks.py
+├── connectors/       gmail.py (OAuth + fetch), trip.py (deterministic extractor)
+└── routers/          commerce.py, policy.py, webhooks.py, connectors.py
 ```
