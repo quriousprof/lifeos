@@ -179,7 +179,7 @@ function StepResult({ step }: { step: Extract<AgentStep, { kind: 'result' }> }) 
       {/* CTAs */}
       <div className="flex items-center gap-3 pt-1">
         <a
-          href={`https://www.bitrefill.com/account/orders/${orderId}`}
+          href={`https://www.bitrefill.com/checkout/${step.invoice.id}`}
           target="_blank"
           rel="noreferrer"
           className="flex items-center gap-2 bg-shielded text-ink font-mono font-bold text-sm px-6 py-2.5 rounded-full hover:bg-shielded/90 transition-all"

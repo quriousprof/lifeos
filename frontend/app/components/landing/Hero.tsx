@@ -29,7 +29,7 @@ export function Hero() {
         <AuroraMesh />
       </div>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-[55fr_45fr] gap-12 lg:gap-16 items-center">
+      <div className="relative z-10 w-full max-w-[88rem] mx-auto grid grid-cols-1 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-10 xl:gap-14 items-center">
         {/* Left column */}
         <div className="flex flex-col">
           {/* Mono tag chip */}
@@ -45,7 +45,7 @@ export function Hero() {
 
           {/* Giant headline */}
           <motion.h1
-            className="font-display text-6xl lg:text-8xl leading-[0.95] tracking-tight mb-6"
+            className="font-display text-6xl lg:text-7xl 2xl:text-8xl leading-[0.95] tracking-tight mb-6"
             initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
             transition={{ delay: leftItems[1].delay, duration: 0.6 }}
@@ -117,7 +117,7 @@ export function Hero() {
 
         {/* Right column — constellation */}
         <motion.div
-          className="hidden lg:flex items-center justify-center"
+          className="hidden lg:flex items-center justify-center w-full"
           initial={{ opacity: 0 }}
           animate={inView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.3, duration: 1 }}
