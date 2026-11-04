@@ -146,6 +146,12 @@ function reducer(state: LifeOSState, action: Action): LifeOSState {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
+export type TabId =
+  | 'agent' | 'sources' | 'graph' | 'triggers'
+  | 'policy' | 'commerce' | 'payment' | 'audit'
+
+export type AgentPrompt = { prompt: string; nonce: number }
+
 interface LifeOSContextValue extends LifeOSState {
   connect: (provider: SourceProvider) => Promise<void>
   revoke: (id: string) => void
@@ -153,6 +159,13 @@ interface LifeOSContextValue extends LifeOSState {
   toggleKillSwitch: () => void
   runTrigger: (triggerId: string) => void
   runPayment: () => void
+  activeTab: TabId
+  setActiveTab: (tab: TabId) => void
+  agentPrompt: AgentPrompt | null
+  triggerAgent: (prompt: string) => void
+  consumeAgentPrompt: () => void
+  markSourceConnected: (id: string, importedCount: number) => void
+  markSourceIdle: (id: string) => void
 }
 
 const LifeOSContext = createContext<LifeOSContextValue | null>(null)
@@ -162,6 +175,25 @@ const LifeOSContext = createContext<LifeOSContextValue | null>(null)
 export function LifeOSProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const paymentCleanupRef = useRef<(() => void) | null>(null)
+  const [activeTab, setActiveTab] = React.useState<TabId>('agent')
+  const [agentPrompt, setAgentPrompt] = React.useState<AgentPrompt | null>(null)
+
+  function triggerAgent(prompt: string): void {
+    setAgentPrompt({ prompt, nonce: Date.now() })
+    setActiveTab('agent')
+  }
+
+  function consumeAgentPrompt(): void {
+    setAgentPrompt(null)
+  }
+
+  function markSourceConnected(id: string, importedCount: number): void {
+    dispatch({ type: 'SOURCE_CONNECTED', id, lastSyncAt: new Date().toISOString(), importedCount })
+  }
+
+  function markSourceIdle(id: string): void {
+    dispatch({ type: 'SET_SOURCE_STATUS', id, status: 'idle', importedCount: 0 })
+  }
 
   // Source lookup by provider
   function sourceIdForProvider(provider: SourceProvider): string {
@@ -332,6 +364,13 @@ export function LifeOSProvider({ children }: { children: React.ReactNode }) {
     toggleKillSwitch,
     runTrigger,
     runPayment,
+    activeTab,
+    setActiveTab,
+    agentPrompt,
+    triggerAgent,
+    consumeAgentPrompt,
+    markSourceConnected,
+    markSourceIdle,
   }
 
   return <LifeOSContext.Provider value={value}>{children}</LifeOSContext.Provider>

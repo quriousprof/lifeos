@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import api, { type InvoiceView, type OrderView } from '@/app/lib/api'
 import { Badge } from '@/app/components/ui/Badge'
 import { ICON } from '@/app/lib/icons'
+import { useLifeOS } from '@/app/providers/LifeOSProvider'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -289,6 +290,7 @@ function UserBubble({ msg }: { msg: Extract<Message, { role: 'user' }> }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function AgentChat() {
+  const { agentPrompt, consumeAgentPrompt } = useLifeOS()
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -408,6 +410,14 @@ export function AgentChat() {
       setLoading(false)
     }
   }, [loading, pushStep, replaceLastStep])
+
+  // Fire the pipeline when another surface (e.g. Gmail connector) enqueues a prompt.
+  useEffect(() => {
+    if (!agentPrompt) return
+    runFlow(agentPrompt.prompt)
+    consumeAgentPrompt()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [agentPrompt?.nonce])
 
   function send() {
     const text = input.trim()

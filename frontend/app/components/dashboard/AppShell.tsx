@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Badge } from '@/app/components/ui/Badge'
 import { Toggle } from '@/app/components/ui/Toggle'
@@ -62,8 +62,7 @@ function Sidebar({
 }
 
 export function AppShell() {
-  const { killSwitch, toggleKillSwitch } = useLifeOS()
-  const [activeTab, setActiveTab] = useState<TabId>('agent')
+  const { killSwitch, toggleKillSwitch, activeTab, setActiveTab } = useLifeOS()
 
   function renderTab() {
     switch (activeTab) {
