@@ -6,6 +6,7 @@ in the frontend; this backend is the live commerce + (later) Zcash layer.
 
 from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -36,9 +37,27 @@ app.include_router(policy.router)
 app.include_router(webhooks.router)
 
 
+@app.get("/", tags=["meta"])
+async def root():
+    """FastAPI Cloud verifies the deployment against the root path."""
+    return {
+        "service": "Life OS Backend",
+        "status": "ok",
+        "health": "/health",
+        "health_deep": "/health/deep",
+        "docs": "/docs",
+    }
+
+
 @app.get("/health", tags=["meta"])
 async def health():
-    """Self + Bitrefill connectivity + account balance."""
+    """Liveness probe: no external I/O, so readiness checks never time out."""
+    return {"status": "ok"}
+
+
+@app.get("/health/deep", tags=["meta"])
+async def health_deep():
+    """Readiness detail: self + Bitrefill connectivity + account balance."""
     out: dict = {"status": "ok", "bitrefill": {"configured": bool(settings.bitrefill_api_key)}}
     if not settings.bitrefill_api_key:
         out["bitrefill"]["reachable"] = False
@@ -49,7 +68,7 @@ async def health():
         out["bitrefill"]["ping"] = await client.ping()
         out["bitrefill"]["balance"] = await client.balance()
         out["bitrefill"]["reachable"] = True
-    except BitrefillError as exc:
+    except (BitrefillError, httpx.HTTPError) as exc:
         out["bitrefill"]["reachable"] = False
         out["bitrefill"]["error"] = str(exc)
     return out
