@@ -1,3 +1,5 @@
+import type { IconKey } from '@/app/lib/icons'
+
 export type SourceProvider = 'gmail' | 'calendar' | 'bitrefill' | 'manual'
 export type SourceStatus = 'idle' | 'authorizing' | 'importing' | 'connected' | 'error'
 export type PipelineStatus = 'proposed' | 'policy_check' | 'authorized' | 'executed' | 'blocked' | 'failed'
@@ -6,7 +8,7 @@ export type ShieldedStatus = 'intent' | 'broadcast' | 'mined' | 'confirmed' | 's
 export interface ConnectedSource {
   id: string; provider: SourceProvider; status: SourceStatus
   grantedScopes: string[]; lastSyncAt: string | null; importedCount: number
-  label: string; icon: string
+  label: string; brand: string
 }
 export interface LifeMemory {
   id: string; type: string; label: string; value: string
@@ -33,7 +35,8 @@ export interface Routine {
 }
 export interface TriggerRule {
   id: string; eventType: string; description: string
-  conditions: Record<string, unknown>; enabled: boolean; cooldown: number; icon: string
+  conditions: Record<string, unknown>; enabled: boolean; cooldown: number
+  iconKey: IconKey
 }
 export interface AutonomyPolicy {
   perTxLimit: number; monthlyBudget: number; monthlySpent: number

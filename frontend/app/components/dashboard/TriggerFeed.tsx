@@ -6,6 +6,7 @@ import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
 import { StatusPill } from '@/app/components/ui/StatusPill'
+import { ICON } from '@/app/lib/icons'
 import type { PipelineStatus } from '@/app/lib/mock'
 
 
@@ -84,28 +85,31 @@ export function TriggerFeed() {
 
       {/* Trigger rules grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
-        {triggerRules.map((rule) => (
-          <Card key={rule.id} className="p-4">
-            <div className="flex items-start gap-3 mb-3">
-              <span className="text-xl">{rule.icon}</span>
-              <div className="flex-1">
-                <p className="font-body text-sm text-mist leading-snug">{rule.description}</p>
+        {triggerRules.map((rule) => {
+          const RuleIcon = ICON[rule.iconKey]
+          return (
+            <Card key={rule.id} className="p-4">
+              <div className="flex items-start gap-3 mb-3">
+                <RuleIcon size={20} weight="duotone" className="text-signal shrink-0" />
+                <div className="flex-1">
+                  <p className="font-body text-sm text-mist leading-snug">{rule.description}</p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center justify-between">
-              <Badge variant={rule.enabled ? 'signal' : 'default'} size="sm">
-                {rule.enabled ? 'enabled' : 'disabled'}
-              </Badge>
-              <button
-                onClick={() => runTrigger(rule.id)}
-                disabled={killSwitch}
-                className="font-mono text-xs text-mist-dim border border-line rounded-full px-3 py-1 hover:text-mist hover:border-signal/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                Run now
-              </button>
-            </div>
-          </Card>
-        ))}
+              <div className="flex items-center justify-between">
+                <Badge variant={rule.enabled ? 'signal' : 'default'} size="sm">
+                  {rule.enabled ? 'enabled' : 'disabled'}
+                </Badge>
+                <button
+                  onClick={() => runTrigger(rule.id)}
+                  disabled={killSwitch}
+                  className="font-mono text-xs text-mist-dim border border-line rounded-full px-3 py-1 hover:text-mist hover:border-signal/50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Run now
+                </button>
+              </div>
+            </Card>
+          )
+        })}
       </div>
 
       {/* Intent feed */}
@@ -122,6 +126,7 @@ export function TriggerFeed() {
           {intents.map((intent) => {
             const rule = triggerRules.find((r) => r.id === intent.triggerId)
             const isExpanded = expandedId === intent.id
+            const IntentIcon = rule ? ICON[rule.iconKey] : ICON.triggers
 
             return (
               <div key={intent.id} className="border-b border-line">
@@ -129,7 +134,11 @@ export function TriggerFeed() {
                   className="flex items-center gap-4 py-4 cursor-pointer"
                   onClick={() => setExpandedId(isExpanded ? null : intent.id)}
                 >
-                  <span className="text-lg shrink-0">{rule?.icon ?? '↻'}</span>
+                  <IntentIcon
+                    size={18}
+                    weight={rule ? 'duotone' : 'regular'}
+                    className={rule ? 'text-signal shrink-0' : 'text-mist-dim shrink-0'}
+                  />
                   <span className="font-body text-sm text-mist flex-1">
                     {intent.triggerDescription}
                   </span>
@@ -149,8 +158,8 @@ export function TriggerFeed() {
                     {intent.policyResult}
                   </Badge>
                   <StatusPill status={intent.status} />
-                  <span className="font-mono text-xs text-signal shrink-0">
-                    {isExpanded ? '▼' : '▶'}
+                  <span className="text-signal shrink-0">
+                    {isExpanded ? <ICON.caretDown size={14} /> : <ICON.caretRight size={14} />}
                   </span>
                 </div>
 

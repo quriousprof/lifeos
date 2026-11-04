@@ -7,6 +7,8 @@ import { Card } from '@/app/components/ui/Card'
 import { StatusPill } from '@/app/components/ui/StatusPill'
 import { AnimatedCounter } from '@/app/components/ui/AnimatedCounter'
 import { Modal } from '@/app/components/ui/Modal'
+import { BrandIcon } from '@/app/components/ui/BrandIcon'
+import { ICON } from '@/app/lib/icons'
 import type { SourceProvider } from '@/app/lib/mock'
 
 type ConnectStep = 'oauth' | 'importing' | 'done'
@@ -58,10 +60,18 @@ function ConnectModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const steps: { key: ConnectStep; label: string }[] = [
+  const steps: { key: ConnectStep; label: React.ReactNode }[] = [
     { key: 'oauth', label: 'Requesting OAuth authorisation...' },
     { key: 'importing', label: 'Importing records...' },
-    { key: 'done', label: `✓ Connected — ${importedCount} records imported` },
+    {
+      key: 'done',
+      label: (
+        <span className="flex items-center gap-1.5">
+          <ICON.checkCircle size={14} weight="fill" className="text-shielded shrink-0" />
+          Connected — {importedCount} records imported
+        </span>
+      ),
+    },
   ]
 
   const stepOrder: ConnectStep[] = ['oauth', 'importing', 'done']
@@ -143,7 +153,7 @@ export function ConnectedSources() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">{source.icon}</span>
+                  <BrandIcon slug={source.brand} size={28} className="rounded" />
                   <div>
                     <div className="font-display text-lg text-mist">{source.label}</div>
                     <StatusPill status={source.status} />
