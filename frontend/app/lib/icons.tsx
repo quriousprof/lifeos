@@ -3,6 +3,7 @@ import {
   ClipboardText, UserCircle, ArrowsClockwise, CalendarBlank, Clock, MapPin,
   Star, Gauge, Gift, Robot, Key, CheckCircle, Check, X, XCircle, Warning,
   CaretDown, CaretRight, AirplaneTilt, Coffee, CircleDashed, Lock,
+  ChatTeardrop, ArrowRight, MagnifyingGlass, Sparkle, ArrowSquareOut, CopySimple,
 } from '@phosphor-icons/react/dist/ssr'
 import type { Icon } from '@phosphor-icons/react'
 
@@ -18,6 +19,8 @@ export const ICON = {
   check: Check, checkCircle: CheckCircle, cross: X, crossCircle: XCircle,
   warning: Warning, caretDown: CaretDown, caretRight: CaretRight,
   simulated: CircleDashed,
+  chat: ChatTeardrop, arrowRight: ArrowRight, search: MagnifyingGlass,
+  sparkle: Sparkle, externalLink: ArrowSquareOut, copy: CopySimple,
 } satisfies Record<string, Icon>
 
 export type IconKey = keyof typeof ICON

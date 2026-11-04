@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Badge } from '@/app/components/ui/Badge'
 import { Toggle } from '@/app/components/ui/Toggle'
+import { AgentChat } from './AgentChat'
 import { ConnectedSources } from './ConnectedSources'
 import { LifeGraphPanel } from './LifeGraphPanel'
 import { TriggerFeed } from './TriggerFeed'
@@ -13,17 +14,19 @@ import { ShieldedPaymentDemo } from './ShieldedPaymentDemo'
 import { AuditLog } from './AuditLog'
 import { ICON, type IconKey } from '@/app/lib/icons'
 
-type TabId = 'sources' | 'graph' | 'triggers' | 'policy' | 'commerce' | 'payment' | 'audit'
+type TabId = 'agent' | 'sources' | 'graph' | 'triggers' | 'policy' | 'commerce' | 'payment' | 'audit'
 
 const tabs: { id: TabId; icon: IconKey; label: string }[] = [
-  { id: 'sources',  icon: 'sources', label: 'Sources' },
-  { id: 'graph',    icon: 'graph', label: 'Life Graph' },
+  { id: 'agent',    icon: 'sparkle',  label: 'Agent' },
+  { id: 'sources',  icon: 'sources',  label: 'Sources' },
+  { id: 'graph',    icon: 'graph',    label: 'Life Graph' },
   { id: 'triggers', icon: 'triggers', label: 'Triggers' },
-  { id: 'policy',   icon: 'policy', label: 'Policy' },
+  { id: 'policy',   icon: 'policy',   label: 'Policy' },
   { id: 'commerce', icon: 'commerce', label: 'Commerce' },
-  { id: 'payment',  icon: 'payment', label: 'Shielded Pay' },
-  { id: 'audit',    icon: 'audit', label: 'Audit Log' },
+  { id: 'payment',  icon: 'payment',  label: 'Shielded Pay' },
+  { id: 'audit',    icon: 'audit',    label: 'Audit Log' },
 ]
+
 
 function Sidebar({
   activeTab,
@@ -60,10 +63,11 @@ function Sidebar({
 
 export function AppShell() {
   const { killSwitch, toggleKillSwitch } = useLifeOS()
-  const [activeTab, setActiveTab] = useState<TabId>('sources')
+  const [activeTab, setActiveTab] = useState<TabId>('agent')
 
   function renderTab() {
     switch (activeTab) {
+      case 'agent':    return <AgentChat />
       case 'sources':  return <ConnectedSources />
       case 'graph':    return <LifeGraphPanel />
       case 'triggers': return <TriggerFeed />
