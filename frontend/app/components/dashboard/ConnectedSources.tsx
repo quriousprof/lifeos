@@ -200,16 +200,15 @@ function BookingFlowModal({
   trip,
   email,
   onClose,
-  onViewTransaction,
 }: {
   trip: Trip
   email: Email | null
   onClose: () => void
-  onViewTransaction: () => void
 }) {
   const [stage, setStage] = useState<BookingStage>('found')
   const [error, setError] = useState<string | null>(null)
   const [order, setOrder] = useState<OrderView | null>(null)
+  const [invoice, setInvoice] = useState<InvoiceView | null>(null)
   const ranRef = useRef(false)
 
   useEffect(() => {
@@ -247,6 +246,7 @@ function BookingFlowModal({
           return
         }
         setOrder(firstOrder)
+        setInvoice(result.invoice)
         setStage('done')
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unexpected error — check backend')
@@ -330,13 +330,16 @@ function BookingFlowModal({
       )}
 
       <div className="mt-6 flex items-center justify-end gap-3">
-        {stage === 'done' && (
-          <button
-            onClick={onViewTransaction}
-            className="bg-signal text-ink font-mono text-xs px-4 py-2 rounded-full hover:bg-signal/90 transition-colors"
+        {stage === 'done' && invoice && (
+          <a
+            href={`https://www.bitrefill.com/checkout/${invoice.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 bg-signal text-ink font-mono text-xs px-4 py-2 rounded-full hover:bg-signal/90 transition-colors"
           >
             View transaction
-          </button>
+            <ICON.externalLink size={13} />
+          </a>
         )}
         {(stage === 'done' || stage === 'error') && (
           <button
@@ -352,7 +355,7 @@ function BookingFlowModal({
 }
 
 function GmailCard() {
-  const { sources, markSourceConnected, markSourceIdle, setActiveTab } = useLifeOS()
+  const { sources, markSourceConnected, markSourceIdle } = useLifeOS()
   const source = sources.find((s) => s.id === GMAIL_SOURCE_ID)
   const [email, setEmail] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
@@ -535,10 +538,6 @@ function GmailCard() {
           trip={booking}
           email={bookingEmail}
           onClose={() => setBooking(null)}
-          onViewTransaction={() => {
-            setActiveTab('audit')
-            setBooking(null)
-          }}
         />
       )}
     </Card>
