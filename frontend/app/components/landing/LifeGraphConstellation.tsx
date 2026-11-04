@@ -300,25 +300,23 @@ export function LifeGraphConstellation() {
                   vectorEffect="non-scaling-stroke"
                 />
                 {/* Packet flow along the spoke */}
-                {!reduce && (
-                  <motion.path
-                    d={spoke.d}
-                    pathLength={1}
-                    stroke={COLOR[spoke.color].hex}
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeOpacity="0.85"
-                    strokeDasharray="0.05 0.95"
-                    initial={{ strokeDashoffset: 1 }}
-                    animate={{ strokeDashoffset: [1, 0] }}
-                    transition={{
-                      duration: 3.4 + i * 0.3,
-                      repeat: Infinity,
-                      ease: 'linear',
-                      delay: 0.6 + i * 0.18,
-                    }}
-                  />
-                )}
+                <motion.path
+                  d={spoke.d}
+                  pathLength={1}
+                  stroke={COLOR[spoke.color].hex}
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeOpacity="0.85"
+                  strokeDasharray="0.05 0.95"
+                  initial={{ strokeDashoffset: 1 }}
+                  animate={reduce ? undefined : { strokeDashoffset: [1, 0] }}
+                  transition={{
+                    duration: 3.4 + i * 0.3,
+                    repeat: Infinity,
+                    ease: 'linear',
+                    delay: 0.6 + i * 0.18,
+                  }}
+                />
               </g>
             )
           })}
