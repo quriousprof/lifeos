@@ -28,13 +28,13 @@ const steps: { num: string; icon: IconKey; label: string; desc: string }[] = [
     num: '04',
     icon: 'execute',
     label: 'EXECUTE',
-    desc: 'Commerce API creates the order',
+    desc: 'Bitrefill REST v2 creates and auto-pays the invoice',
   },
   {
     num: '05',
     icon: 'verify',
     label: 'VERIFY',
-    desc: 'Fulfilment confirmed, audit log written',
+    desc: 'Orders polled to delivered; redemption code audited',
   },
 ]
 

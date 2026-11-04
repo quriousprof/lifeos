@@ -2,6 +2,7 @@ import { GrainOverlay } from '@/app/components/atmosphere/GrainOverlay'
 import Nav from '@/app/components/Nav'
 import { Hero } from '@/app/components/landing/Hero'
 import { PipelineStrip } from '@/app/components/landing/PipelineStrip'
+import { BitrefillRail } from '@/app/components/landing/BitrefillRail'
 import { TriggerTaxonomy } from '@/app/components/landing/TriggerTaxonomy'
 import { AutonomyTiers } from '@/app/components/landing/AutonomyTiers'
 import { PrivacyZcash } from '@/app/components/landing/PrivacyZcash'
@@ -17,6 +18,7 @@ export default function LandingPage() {
       <main className="overflow-x-hidden">
         <Hero />
         <PipelineStrip />
+        <BitrefillRail />
         <TriggerTaxonomy />
         <AutonomyTiers />
         <PrivacyZcash />

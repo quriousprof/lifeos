@@ -37,8 +37,8 @@ export function CTA() {
 
           {/* Body */}
           <p className="font-body text-base text-mist-dim max-w-lg">
-            Explore the mocked dashboard — connect sources, trigger the Singapore eSIM flow, and
-            watch the shielded payment demo.
+            Explore the dashboard — connect sources, trigger the Singapore eSIM flow, and buy real
+            digital goods through Bitrefill&apos;s live commerce API.
           </p>
 
           {/* CTA button */}
@@ -51,7 +51,8 @@ export function CTA() {
 
           {/* Disclaimer */}
           <p className="font-mono text-xs text-mist-dim">
-            All connections and payments are simulated · No real data is collected
+            Bitrefill commerce runs on its live API (test products in dev) · source imports are
+            simulated
           </p>
         </motion.div>
       </div>
