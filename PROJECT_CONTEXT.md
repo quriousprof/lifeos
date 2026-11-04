@@ -144,8 +144,24 @@ app/
 - Never imply the LLM holds keys or that shielded ZEC hides everything from all parties.
 - Label any simulated leg as simulated.
 
-## 10. Plans log
+## 10. Backend — live Bitrefill (implemented)
+
+**Status: Phase A shipped.** Python **FastAPI** service at `backend/` (uv, Python 3.13) with a **real** Bitrefill REST API v2 integration. Connectors (Gmail/Calendar/OAuth) remain mocked — only commerce is live.
+
+- Run: `cd backend && cp .env.example .env` (set `BITREFILL_API_KEY`) `&& uv run uvicorn backend.app:app --reload --port 8000`. See `backend/README.md`.
+- **Agentic loop:** `propose → policy → re-quote → create invoice → reconcile (polling) → redemption → audit`. The agent proposes; `policy.py` decides (per-tx cap, monthly budget, merchant/category allowlist, kill switch) — caps in code, never a prompt. Idempotency key per intent → no duplicate orders. Paid ≠ delivered: polls each order to terminal state.
+- **Dev uses Bitrefill test products** (`test-gift-card-code`) — free, real API, real redemption codes; swap `product_id` + account balance → real buy.
+- Endpoints: `/health`, `/products/search`, `/products/{id}`, `/intents`, `/intents/{id}/execute`, `/orders/{id}`, `/policy`, `/kill-switch`, `/audit`. SQLite ledger (`backend/lifeos.db`, gitignored).
+- **Frontend wiring:** `frontend/app/lib/api.ts` typed client; CommerceDrawer (live catalog + propose/execute), PolicyEditor (live policy), AuditLog (live ledger) hit the backend; "LIVE · BITREFILL" badges. `NEXT_PUBLIC_API_BASE` in `.env.local`. Sources/Graph/Triggers stay mocked.
+- Verified end-to-end in-browser: real eSIM catalog search, policy allow/block, invoice → delivered order → **real redemption code**, live audit ledger.
+- **Secrets:** `backend/.env` gitignored; key never in repo or frontend bundle.
+
+## 11. Zcash — planned (Phase B, two-leg)
+**Not yet built.** Real shielded ZEC testnet payment as a **separate verified leg** (Bitrefill doesn't accept ZEC directly; ZEC→USDC swap is mainnet-only). Recommended path: **ZPay** (x402 + spend-limited agent wallet); run target TBD (local Zakura vs public testnet). See `plans/03-backend-bitrefill-zcash.md` phase B.
+
+## 12. Plans log
 | Plan | File | Status |
 | --- | --- | --- |
 | Initial UI (mocked) | `plans/01-initial-ui.md` | ✅ done — merged to `main` |
 | Phosphor + brand icons | `plans/02-phosphor-icons.md` | ✅ done — merged from `ui-deepseek` |
+| Backend: Bitrefill + Zcash | `plans/03-backend-bitrefill-zcash.md` | 🟡 Phase A (Bitrefill) done · Phase B (Zcash) pending |
