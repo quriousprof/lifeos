@@ -107,3 +107,39 @@ class AuditView(BaseModel):
     fulfillment_status: str | None
     result: str
     timestamp: str
+
+
+# ── Gmail connector ─────────────────────────────────────────────────────────────
+class Email(BaseModel):
+    id: str
+    sender: str
+    subject: str
+    date: str
+    snippet: str
+    body: str
+
+
+class Trip(BaseModel):
+    origin: str | None = None
+    destination: str | None = None
+    destination_country_code: str | None = None
+    date_iso: str | None = None
+    date_raw: str | None = None
+    source_email_id: str | None = None
+    matched_keywords: list[str] = Field(default_factory=list)
+    actionable: bool = False
+
+
+class GmailStatus(BaseModel):
+    connected: bool
+    email: str | None = None
+    scopes: list[str] = Field(default_factory=list)
+
+
+class GmailAuthUrl(BaseModel):
+    auth_url: str
+
+
+class GmailFetchResult(BaseModel):
+    emails: list[Email] = Field(default_factory=list)
+    trip: Trip | None = None
