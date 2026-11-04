@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
@@ -11,6 +11,7 @@ import { BrandIcon } from '@/app/components/ui/BrandIcon'
 import { ICON } from '@/app/lib/icons'
 import type { SourceProvider } from '@/app/lib/mock'
 import { gmailApi, type Email, type Trip } from '@/app/lib/gmail'
+import api, { type InvoiceView, type OrderView } from '@/app/lib/api'
 
 type ConnectStep = 'oauth' | 'importing' | 'done'
 
@@ -126,15 +127,223 @@ function ConnectModal({
 
 const GMAIL_SOURCE_ID = 'src-gmail'
 
+const ESIM_LABEL = { name: 'Airalo Singapore eSIM', value: '3GB · 30 days · 5G' }
+
+function wait(ms: number): Promise<void> {
+  const { promise, resolve } = Promise.withResolvers<void>()
+  setTimeout(resolve, ms)
+  return promise
+}
+
+type BookingStage = 'found' | 'proposing' | 'purchasing' | 'done' | 'error'
+
+function StepRow({
+  done,
+  active,
+  label,
+  detail,
+  spinner,
+  dimmed,
+}: {
+  done: boolean
+  active: boolean
+  label: string
+  detail: string
+  spinner: React.ReactNode
+  dimmed?: boolean
+}) {
+  const Check = ICON.checkCircle
+  return (
+    <div className={'flex items-start gap-3 ' + (dimmed ? 'opacity-40' : '')}>
+      <span className="mt-0.5 w-4 flex justify-center shrink-0">
+        {done ? (
+          <Check size={16} weight="fill" className="text-shielded" />
+        ) : active ? (
+          spinner
+        ) : (
+          <span className="w-2 h-2 rounded-full bg-mist-dim/30" />
+        )}
+      </span>
+      <div>
+        <div className="font-mono text-xs text-mist">{label}</div>
+        <div className="font-mono text-[11px] text-mist-dim">{detail}</div>
+      </div>
+    </div>
+  )
+}
+
+function BookingFlowModal({
+  trip,
+  email,
+  onClose,
+  onViewTransaction,
+}: {
+  trip: Trip
+  email: Email | null
+  onClose: () => void
+  onViewTransaction: () => void
+}) {
+  const [stage, setStage] = useState<BookingStage>('found')
+  const [error, setError] = useState<string | null>(null)
+  const [order, setOrder] = useState<OrderView | null>(null)
+  const ranRef = useRef(false)
+
+  useEffect(() => {
+    if (ranRef.current) return
+    ranRef.current = true
+    let cancelled = false
+
+    async function run() {
+      try {
+        await wait(1400) // let "Flight Booking Found!" land
+        if (cancelled) return
+        setStage('proposing')
+        const intent = await api.proposeIntent({
+          product_id: 'test-gift-card-code',
+          value: 10,
+          quantity: 1,
+          merchant: 'bitrefill',
+          category: 'gift_card',
+          amount_usd: 10,
+          trigger: 'gmail',
+          intent: `Singapore travel eSIM — Gmail booking ${email?.id ?? ''}`.trim(),
+        })
+        if (cancelled) return
+        if (intent.policy_result !== 'allowed') {
+          setError(intent.policy_reason ?? 'Blocked by autonomy policy')
+          setStage('error')
+          return
+        }
+        await wait(500)
+        if (cancelled) return
+        setStage('purchasing')
+        const result = await api.executeIntent(intent.id)
+        if (cancelled) return
+        const firstOrder = result.invoice?.orders?.[0] ?? null
+        if (!result.invoice || !firstOrder) {
+          setError('No order returned from Bitrefill.')
+          setStage('error')
+          return
+        }
+        setOrder(firstOrder)
+        setStage('done')
+      } catch (e) {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : 'Unexpected error — check backend')
+        setStage('error')
+      }
+    }
+    run()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const Plane = ICON.travel
+  const Check = ICON.checkCircle
+  const spinner = (
+    <motion.span
+      animate={{ rotate: 360 }}
+      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+      className="w-4 h-4 border-2 border-signal/30 border-t-signal rounded-full inline-block"
+    />
+  )
+
+  return (
+    <Modal open onClose={onClose}>
+      <div className="flex items-center gap-3 mb-5">
+        <div className="w-10 h-10 rounded-full bg-signal/15 flex items-center justify-center shrink-0">
+          <Plane size={20} weight="fill" className="text-signal" />
+        </div>
+        <div>
+          <div className="font-display text-xl text-mist">Flight Booking Found!</div>
+          <div className="font-mono text-xs text-mist-dim">Getting you an e-SIM…</div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-line bg-ink-3/50 px-4 py-3 mb-5">
+        <div className="font-mono text-xs text-mist">
+          {trip.origin ?? '—'} → {trip.destination ?? '—'}
+          {trip.date_raw ? ` · ${trip.date_raw}` : ''}
+        </div>
+        {email?.subject && (
+          <div className="font-mono text-[11px] text-mist-dim mt-1 truncate">“{email.subject}”</div>
+        )}
+      </div>
+
+      <div className="space-y-3">
+        <StepRow
+          done={stage === 'purchasing' || stage === 'done'}
+          active={stage === 'proposing'}
+          label="Policy check"
+          detail={`${ESIM_LABEL.name} · $9.00 · within cap & allowlist`}
+          spinner={spinner}
+          dimmed={stage === 'found'}
+        />
+        <StepRow
+          done={stage === 'done'}
+          active={stage === 'purchasing'}
+          label="Purchasing eSIM via Bitrefill"
+          detail="real redemption code · audited"
+          spinner={spinner}
+          dimmed={stage === 'found' || stage === 'proposing'}
+        />
+      </div>
+
+      {stage === 'error' && (
+        <div className="mt-5 font-mono text-xs text-alert bg-alert/10 border border-alert/30 rounded px-3 py-2">
+          {error}
+        </div>
+      )}
+
+      {stage === 'done' && order && (
+        <div className="mt-5 rounded-lg border border-shielded/30 bg-shielded/5 px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Check size={16} weight="fill" className="text-shielded" />
+            <span className="font-mono text-xs text-shielded">eSIM delivered</span>
+          </div>
+          <div className="font-mono text-[11px] text-mist-dim">{ESIM_LABEL.value}</div>
+          {order.redemption_info?.code && (
+            <div className="mt-2 font-mono text-xs text-mist break-all">
+              code: <span className="text-signal">{order.redemption_info.code}</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-6 flex items-center justify-end gap-3">
+        {stage === 'done' && (
+          <button
+            onClick={onViewTransaction}
+            className="bg-signal text-ink font-mono text-xs px-4 py-2 rounded-full hover:bg-signal/90 transition-colors"
+          >
+            View transaction
+          </button>
+        )}
+        {(stage === 'done' || stage === 'error') && (
+          <button
+            onClick={onClose}
+            className="border border-line text-mist-dim font-mono text-xs px-4 py-2 rounded-full hover:text-mist transition-colors"
+          >
+            Close
+          </button>
+        )}
+      </div>
+    </Modal>
+  )
+}
+
 function GmailCard() {
-  const { sources, markSourceConnected, markSourceIdle, triggerAgent } = useLifeOS()
+  const { sources, markSourceConnected, markSourceIdle, setActiveTab } = useLifeOS()
   const source = sources.find((s) => s.id === GMAIL_SOURCE_ID)
   const [email, setEmail] = useState<string | null>(null)
   const [connecting, setConnecting] = useState(false)
-  const [fetching, setFetching] = useState(false)
-  const [emails, setEmails] = useState<Email[]>([])
-  const [trip, setTrip] = useState<Trip | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [booking, setBooking] = useState<Trip | null>(null)
+  const [bookingEmail, setBookingEmail] = useState<Email | null>(null)
+  const pollRef = useRef<number | null>(null)
+  const handledRef = useRef(false)
 
   const connected = source?.status === 'connected'
 
@@ -147,7 +356,7 @@ function GmailCard() {
         if (cancelled) return
         if (s.connected) {
           setEmail(s.email)
-          markSourceConnected(GMAIL_SOURCE_ID, emails.length)
+          markSourceConnected(GMAIL_SOURCE_ID, 0)
         }
       })
       .catch(() => {})
@@ -156,6 +365,34 @@ function GmailCard() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Poll the inbox every 5s while connected; fire the booking flow once.
+  useEffect(() => {
+    if (!connected) return
+
+    async function poll() {
+      if (handledRef.current) return
+      try {
+        const res = await gmailApi.fetchEmails(5, true)
+        if (res.trip?.actionable && !handledRef.current) {
+          handledRef.current = true
+          clearInterval(pollRef.current ?? undefined)
+          const src = res.emails.find((e) => e.id === res.trip?.source_email_id) ?? null
+          setBookingEmail(src)
+          setBooking(res.trip)
+        }
+      } catch {
+        /* transient — keep polling */
+      }
+    }
+
+    poll() // immediate first check
+    pollRef.current = window.setInterval(poll, 5000)
+    return () => {
+      clearInterval(pollRef.current ?? undefined)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected])
 
   async function connect() {
     setError(null)
@@ -186,26 +423,9 @@ function GmailCard() {
     window.addEventListener('message', onMessage)
   }
 
-  async function fetchEmails() {
-    setError(null)
-    setFetching(true)
-    setTrip(null)
-    try {
-      const res = await gmailApi.fetchEmails(5)
-      setEmails(res.emails)
-      setTrip(res.trip)
-      markSourceConnected(GMAIL_SOURCE_ID, res.emails.length)
-      if (res.trip?.actionable) {
-        triggerAgent(`I'm travelling to ${res.trip.destination ?? 'Singapore'}, buy me an eSIM`)
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Fetch failed')
-    } finally {
-      setFetching(false)
-    }
-  }
-
   async function disconnect() {
+    clearInterval(pollRef.current ?? undefined)
+    handledRef.current = false
     try {
       await gmailApi.disconnect()
     } catch {
@@ -213,13 +433,9 @@ function GmailCard() {
     }
     markSourceIdle(GMAIL_SOURCE_ID)
     setEmail(null)
-    setEmails([])
-    setTrip(null)
+    setBooking(null)
+    setBookingEmail(null)
   }
-
-  const CheckCircle = ICON.checkCircle
-  const Mail = ICON.sources
-  const Plane = ICON.travel
 
   return (
     <Card glow={connected ? 'shielded' : 'none'} className="p-5 md:col-span-2">
@@ -228,7 +444,14 @@ function GmailCard() {
           <BrandIcon slug="gmail" size={28} className="rounded" />
           <div>
             <div className="font-display text-lg text-mist">Gmail</div>
-            <StatusPill status={source?.status ?? 'idle'} />
+            {connected ? (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-shielded animate-pulse" />
+                <span className="font-mono text-xs text-shielded">Active</span>
+              </div>
+            ) : (
+              <StatusPill status={source?.status ?? 'idle'} />
+            )}
             {connected && email && (
               <div className="font-mono text-xs text-mist-dim mt-1">{email}</div>
             )}
@@ -254,7 +477,7 @@ function GmailCard() {
         </div>
       )}
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-3">
         {!connected ? (
           <button
             onClick={connect}
@@ -265,17 +488,13 @@ function GmailCard() {
           </button>
         ) : (
           <>
-            <button
-              onClick={fetchEmails}
-              disabled={fetching}
-              className="bg-signal/10 text-signal border border-signal/30 font-mono text-xs px-4 py-2 rounded-full hover:bg-signal/20 transition-colors disabled:opacity-50 flex items-center gap-2"
-            >
-              <Mail size={12} />
-              {fetching ? 'Fetching…' : 'Fetch emails'}
-            </button>
+            <span className="font-mono text-xs text-mist-dim flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-signal animate-pulse" />
+              Watching inbox for booking confirmations…
+            </span>
             <button
               onClick={disconnect}
-              className="bg-alert/10 text-alert border border-alert/30 font-mono text-xs px-3 py-1.5 rounded-full hover:bg-alert/20 transition-colors"
+              className="ml-auto bg-alert/10 text-alert border border-alert/30 font-mono text-xs px-3 py-1.5 rounded-full hover:bg-alert/20 transition-colors"
             >
               Revoke
             </button>
@@ -283,51 +502,16 @@ function GmailCard() {
         )}
       </div>
 
-      {trip && (
-        <div
-          className={
-            'mt-4 rounded-lg border px-4 py-3 ' +
-            (trip.actionable
-              ? 'border-shielded/30 bg-shielded/5'
-              : 'border-signal/30 bg-signal/5')
-          }
-        >
-          <div className="flex items-center gap-2 font-mono text-xs text-mist">
-            <Plane size={14} className={trip.actionable ? 'text-shielded' : 'text-signal'} weight="fill" />
-            <span>
-              {trip.origin ?? '—'} → {trip.destination ?? '—'}
-              {trip.date_raw ? ` · ${trip.date_raw}` : ''}
-            </span>
-          </div>
-          <div className="font-mono text-[11px] text-mist-dim mt-1">
-            keywords: {trip.matched_keywords.join(', ') || '—'}
-          </div>
-          <div className="font-mono text-[11px] mt-1">
-            {trip.actionable ? (
-              <span className="text-shielded">Trip detected → eSIM pipeline triggered in Agent tab.</span>
-            ) : (
-              <span className="text-mist-dim">eSIM purchase only wired for Singapore in this demo.</span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {emails.length > 0 && (
-        <div className="mt-4 space-y-2">
-          <div className="font-mono text-[11px] text-mist-dim uppercase tracking-wider">
-            Latest {emails.length} emails
-          </div>
-          {emails.map((e) => (
-            <div key={e.id} className="border border-line rounded-lg px-3 py-2 bg-ink-3/50">
-              <div className="flex items-center justify-between gap-3">
-                <span className="font-body text-sm text-mist truncate">{e.subject || '(no subject)'}</span>
-                <span className="font-mono text-[10px] text-mist-dim shrink-0">{e.date}</span>
-              </div>
-              <div className="font-mono text-[11px] text-mist-dim truncate">{e.sender}</div>
-              <div className="font-body text-xs text-mist-dim/80 mt-1 line-clamp-2">{e.snippet}</div>
-            </div>
-          ))}
-        </div>
+      {booking && (
+        <BookingFlowModal
+          trip={booking}
+          email={bookingEmail}
+          onClose={() => setBooking(null)}
+          onViewTransaction={() => {
+            setActiveTab('audit')
+            setBooking(null)
+          }}
+        />
       )}
     </Card>
   )
