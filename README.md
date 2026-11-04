@@ -74,7 +74,7 @@ cp .env.example .env          # set BITREFILL_API_KEY=...
 uv run main.py                # uvicorn on http://127.0.0.1:8000
 ```
 
-Check it: `curl localhost:8000/health` → `{"status":"ok","bitrefill":{"ping":"pong",...}}`.
+Check it: `curl localhost:8000/health/deep` → `{"status":"ok","bitrefill":{"ping":"pong",...}}`.
 
 ### 2 · Frontend
 
@@ -104,7 +104,9 @@ Lowering the per-transaction cap in the **Policy** tab below the purchase price 
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/health` | self + Bitrefill ping + balance |
+| GET | `/` | service banner (cloud readiness) |
+| GET | `/health` | liveness only — instant, no external I/O |
+| GET | `/health/deep` | self + Bitrefill ping + balance |
 | GET | `/products/search?q=&country=&limit=` | live catalogue search |
 | GET | `/products/{id}` | denominations (packages / range) |
 | POST | `/intents` | propose → policy check → allowed/blocked |

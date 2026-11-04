@@ -45,7 +45,9 @@ volume — the default SQLite file is wiped when an ephemeral container is repla
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| GET | `/health` | self + Bitrefill ping + balance |
+| GET | `/` | service banner (cloud readiness) |
+| GET | `/health` | liveness only — instant, no external I/O |
+| GET | `/health/deep` | self + Bitrefill ping + balance |
 | GET | `/products/search?q=&country=&limit=&include_test=` | live catalog search |
 | GET | `/products/{id}` | denominations (packages/range) |
 | POST | `/intents` | propose → runs policy, returns allowed/blocked |
