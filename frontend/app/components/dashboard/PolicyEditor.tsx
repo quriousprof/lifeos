@@ -4,6 +4,7 @@ import React, { useState } from 'react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
+import { ICON } from '@/app/lib/icons'
 
 const ALL_CATEGORIES = ['esim', 'subscription', 'media', 'productivity', 'travel', 'groceries']
 
@@ -109,7 +110,7 @@ export function PolicyEditor() {
                   }
                   className="text-mist-dim hover:text-alert transition-colors leading-none"
                 >
-                  ×
+                  <ICON.cross size={12} weight="bold" />
                 </button>
               </span>
             ))}
@@ -174,7 +175,7 @@ export function PolicyEditor() {
                       })
                     }
                   >
-                    ✓
+                    {checked && <ICON.check size={12} weight="bold" />}
                   </span>
                   <span className="font-mono text-xs text-mist">{cat}</span>
                 </label>

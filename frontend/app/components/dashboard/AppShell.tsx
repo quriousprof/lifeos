@@ -11,17 +11,18 @@ import { PolicyEditor } from './PolicyEditor'
 import { CommerceDrawer } from './CommerceDrawer'
 import { ShieldedPaymentDemo } from './ShieldedPaymentDemo'
 import { AuditLog } from './AuditLog'
+import { ICON, type IconKey } from '@/app/lib/icons'
 
 type TabId = 'sources' | 'graph' | 'triggers' | 'policy' | 'commerce' | 'payment' | 'audit'
 
-const tabs: { id: TabId; icon: string; label: string }[] = [
-  { id: 'sources',  icon: '⚡', label: 'Sources' },
-  { id: 'graph',    icon: '◉', label: 'Life Graph' },
-  { id: 'triggers', icon: '↻', label: 'Triggers' },
-  { id: 'policy',   icon: '⬡', label: 'Policy' },
-  { id: 'commerce', icon: '⚙', label: 'Commerce' },
-  { id: 'payment',  icon: 'ℤ', label: 'Shielded Pay' },
-  { id: 'audit',    icon: '▤', label: 'Audit Log' },
+const tabs: { id: TabId; icon: IconKey; label: string }[] = [
+  { id: 'sources',  icon: 'sources', label: 'Sources' },
+  { id: 'graph',    icon: 'graph', label: 'Life Graph' },
+  { id: 'triggers', icon: 'triggers', label: 'Triggers' },
+  { id: 'policy',   icon: 'policy', label: 'Policy' },
+  { id: 'commerce', icon: 'commerce', label: 'Commerce' },
+  { id: 'payment',  icon: 'payment', label: 'Shielded Pay' },
+  { id: 'audit',    icon: 'audit', label: 'Audit Log' },
 ]
 
 function Sidebar({
@@ -33,21 +34,26 @@ function Sidebar({
 }) {
   return (
     <nav className="w-52 shrink-0 border-r border-line bg-ink-2 py-4 flex flex-col gap-1 px-2">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          onClick={() => setActiveTab(tab.id)}
-          className={
-            'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer font-mono text-xs transition-colors w-full text-left ' +
-            (activeTab === tab.id
-              ? 'bg-ink-3 text-mist border-l-2 border-signal'
-              : 'text-mist-dim hover:text-mist hover:bg-ink-3/50')
-          }
-        >
-          <span>{tab.icon}</span>
-          <span>{tab.label}</span>
-        </button>
-      ))}
+      {tabs.map((tab) => {
+        const TabIcon = ICON[tab.icon]
+        const active = activeTab === tab.id
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={
+              'flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer font-mono text-xs transition-colors w-full text-left ' +
+              (active
+                ? 'bg-ink-3 text-mist border-l-2 border-signal'
+                : 'text-mist-dim hover:text-mist hover:bg-ink-3/50')
+            }
+          >
+            <TabIcon size={16} weight={active ? 'fill' : 'regular'} className="shrink-0" />
+            <span>{tab.label}</span>
+          </button>
+        )
+      })}
     </nav>
   )
 }

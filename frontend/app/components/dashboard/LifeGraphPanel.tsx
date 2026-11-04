@@ -8,6 +8,7 @@ import { Badge } from '@/app/components/ui/Badge'
 import { StatusPill } from '@/app/components/ui/StatusPill'
 import { AnimatedCounter } from '@/app/components/ui/AnimatedCounter'
 import { ConfidenceMeter } from '@/app/components/ui/ConfidenceMeter'
+import { ICON } from '@/app/lib/icons'
 
 function SectionHeader({
   label,
@@ -29,7 +30,9 @@ function SectionHeader({
         <span className="font-mono text-xs text-signal uppercase tracking-widest">{label}</span>
         <Badge variant="mist" size="sm">{count}</Badge>
       </div>
-      <span className="text-signal text-xs">{expanded ? '▼' : '▶'}</span>
+      <span className="text-signal">
+        {expanded ? <ICON.caretDown size={12} /> : <ICON.caretRight size={12} />}
+      </span>
     </div>
   )
 }

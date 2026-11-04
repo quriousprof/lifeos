@@ -6,6 +6,7 @@ import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
 import { BITREFILL_SG_PRODUCTS } from '@/app/lib/mock'
+import { ICON } from '@/app/lib/icons'
 import type { BitrefillProduct } from '@/app/lib/mock'
 
 function PolicyCheckRow({
@@ -32,7 +33,11 @@ function PolicyCheckRow({
           className="flex items-center gap-2"
         >
           <span className={pass ? 'text-shielded' : 'text-alert'}>
-            {pass ? '✓' : '✗'}
+            {pass ? (
+              <ICON.check size={14} weight="bold" />
+            ) : (
+              <ICON.cross size={14} weight="bold" />
+            )}
           </span>
           <span className="font-mono text-xs text-mist-dim">{label}</span>
         </motion.div>
@@ -90,7 +95,9 @@ export function CommerceDrawer() {
         </div>
 
         <div className="bg-ink-2 border border-line rounded-xl p-8 text-center">
-          <div className="text-4xl text-mist-dim mb-4">✈</div>
+          <div className="flex justify-center text-mist-dim mb-4">
+            <ICON.travel size={36} weight="duotone" />
+          </div>
           <p className="font-body text-sm text-mist-dim mb-6 max-w-sm mx-auto">
             No active commerce triggers. Connect Gmail + Calendar and wait for the Singapore travel
             trigger to fire.
@@ -114,7 +121,10 @@ export function CommerceDrawer() {
 
       {/* Trigger context card */}
       <Card glow="signal" className="p-5 mb-6">
-        <h2 className="font-display text-lg text-mist mb-1">✈ Singapore Tech Summit</h2>
+        <h2 className="flex items-center gap-2 font-display text-lg text-mist mb-1">
+          <ICON.travel size={20} weight="duotone" className="text-signal" />
+          Singapore Tech Summit
+        </h2>
         <p className="font-mono text-xs text-mist-dim mb-3">
           Marina Bay Sands · Starts in 3 days
         </p>
@@ -235,7 +245,7 @@ export function CommerceDrawer() {
 
               {orderState === 'created' ? (
                 <div className="flex items-center gap-3">
-                  <span className="text-shielded text-lg">✓</span>
+                  <ICON.check size={18} weight="bold" className="text-shielded" />
                   <span className="font-mono text-xs text-shielded">
                     Order created — ref: {orderRef}
                   </span>

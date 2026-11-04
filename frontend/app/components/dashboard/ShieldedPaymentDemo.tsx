@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
+import { ICON } from '@/app/lib/icons'
 import type { ShieldedStatus } from '@/app/lib/mock'
 
 type StepDef = {
@@ -182,10 +183,13 @@ export function ShieldedPaymentDemo() {
 
             {/* Honest limitations */}
             <div className="border-t border-line pt-4 mt-4">
-              <p className="font-mono text-xs text-mist-dim/60 italic">
-                ⚠ This transaction does not hide data from Bitrefill, Airalo, or the fulfilment
-                partner. Shielded means the sender address and amount are private on-chain, not
-                that the merchant cannot see your order.
+              <p className="flex items-start gap-2 font-mono text-xs text-mist-dim/60 italic">
+                <ICON.warning size={14} weight="bold" className="text-alert shrink-0 mt-px" />
+                <span>
+                  This transaction does not hide data from Bitrefill, Airalo, or the fulfilment
+                  partner. Shielded means the sender address and amount are private on-chain, not
+                  that the merchant cannot see your order.
+                </span>
               </p>
             </div>
           </motion.div>

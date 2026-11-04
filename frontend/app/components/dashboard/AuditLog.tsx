@@ -4,6 +4,7 @@ import React from 'react'
 import { useLifeOS } from '@/app/providers/LifeOSProvider'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
+import { ICON } from '@/app/lib/icons'
 
 export function AuditLog() {
   const { auditEvents } = useLifeOS()
@@ -34,11 +35,13 @@ export function AuditLog() {
                   : 'bg-signal/[0.03]'
 
             const icon =
-              event.result === 'success'
-                ? '✓'
-                : event.result === 'blocked'
-                  ? '✗'
-                  : '◎'
+              event.result === 'success' ? (
+                <ICON.checkCircle size={18} weight="fill" />
+              ) : event.result === 'blocked' ? (
+                <ICON.crossCircle size={18} weight="fill" />
+              ) : (
+                <ICON.simulated size={18} />
+              )
 
             const iconColor =
               event.result === 'success'
@@ -50,7 +53,7 @@ export function AuditLog() {
             return (
               <Card key={event.id} className={`${bgClass}`}>
                 <div className="flex items-start gap-4 p-4">
-                  <span className={`${iconColor} text-lg mt-0.5 shrink-0`}>{icon}</span>
+                  <span className={`${iconColor} mt-0.5 shrink-0`}>{icon}</span>
 
                   <div className="flex-1 min-w-0">
                     <div className="font-mono text-sm text-mist mb-0.5">{event.action}</div>
