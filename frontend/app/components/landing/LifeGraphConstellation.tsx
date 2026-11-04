@@ -55,9 +55,14 @@ const COLOR: Record<NodeColor, { hex: string; rgb: string }> = {
 const MONO = 'var(--font-geist-mono)'
 const HubIcon = ICON.user
 
+// Trig/`hypot` results differ in the last bits between Node and the browser,
+// which changes the serialized SVG path and breaks hydration. Round every
+// computed coordinate so server and client emit identical markup.
+const r2 = (v: number) => Math.round(v * 100) / 100
+
 function polar(angle: number, radius: number) {
   const a = (angle * Math.PI) / 180
-  return { x: CX + Math.cos(a) * radius, y: CY + Math.sin(a) * radius }
+  return { x: r2(CX + Math.cos(a) * radius), y: r2(CY + Math.sin(a) * radius) }
 }
 
 const nodes = NODES.map((n) => ({ ...n, ...polar(n.angle, n.radius) }))
@@ -76,7 +81,7 @@ function spokePath(node: (typeof nodes)[number]) {
   const mx = (sx + ex) / 2
   const my = (sy + ey) / 2
   const bend = dist * node.bend
-  return `M ${sx} ${sy} Q ${mx - uy * bend} ${my + ux * bend} ${ex} ${ey}`
+  return `M ${r2(sx)} ${r2(sy)} Q ${r2(mx - uy * bend)} ${r2(my + ux * bend)} ${r2(ex)} ${r2(ey)}`
 }
 
 function linkPath(aId: string, bId: string) {
@@ -92,7 +97,7 @@ function linkPath(aId: string, bId: string) {
   const ex = b.x - ux * (b.size / 2 + 8)
   const ey = b.y - uy * (b.size / 2 + 8)
   const bend = dist * 0.14
-  return `M ${sx} ${sy} Q ${(sx + ex) / 2 - uy * bend} ${(sy + ey) / 2 + ux * bend} ${ex} ${ey}`
+  return `M ${r2(sx)} ${r2(sy)} Q ${r2((sx + ex) / 2 - uy * bend)} ${r2((sy + ey) / 2 + ux * bend)} ${r2(ex)} ${r2(ey)}`
 }
 
 const spokes = nodes.map((node, i) => ({ id: node.id, d: spokePath(node), index: i, color: node.color }))
@@ -192,10 +197,10 @@ export function LifeGraphConstellation() {
             return (
               <line
                 key={deg}
-                x1={CX + Math.cos(a) * inner}
-                y1={CY + Math.sin(a) * inner}
-                x2={CX + Math.cos(a) * outer}
-                y2={CY + Math.sin(a) * outer}
+                x1={r2(CX + Math.cos(a) * inner)}
+                y1={r2(CY + Math.sin(a) * inner)}
+                x2={r2(CX + Math.cos(a) * outer)}
+                y2={r2(CY + Math.sin(a) * outer)}
                 opacity={major ? 0.9 : 0.4}
               />
             )
@@ -236,26 +241,24 @@ export function LifeGraphConstellation() {
         </g>
 
         {/* Radar sweep */}
-        {!reduce && (
-          <motion.g
-            style={{ transformOrigin: `${CX}px ${CY}px`, transformBox: 'view-box' }}
-            animate={{ rotate: 360 }}
-            transition={{ duration: 34, repeat: Infinity, ease: 'linear' }}
-          >
-            <path
-              d={`M ${CX} ${CY} L ${CX + OUTER_R * Math.cos(-0.42)} ${CY + OUTER_R * Math.sin(-0.42)} A ${OUTER_R} ${OUTER_R} 0 0 1 ${CX + OUTER_R * Math.cos(0.06)} ${CY + OUTER_R * Math.sin(0.06)} Z`}
-              fill="url(#sweep-fill)"
-            />
-            <line
-              x1={CX}
-              y1={CY}
-              x2={CX + OUTER_R * Math.cos(0.06)}
-              y2={CY + OUTER_R * Math.sin(0.06)}
-              stroke="rgba(244,183,40,0.18)"
-              strokeWidth="0.75"
-            />
-          </motion.g>
-        )}
+        <motion.g
+          style={{ transformOrigin: `${CX}px ${CY}px`, transformBox: 'view-box' }}
+          animate={reduce ? undefined : { rotate: 360 }}
+          transition={{ duration: 34, repeat: Infinity, ease: 'linear' }}
+        >
+          <path
+            d={`M ${CX} ${CY} L ${r2(CX + OUTER_R * Math.cos(-0.42))} ${r2(CY + OUTER_R * Math.sin(-0.42))} A ${OUTER_R} ${OUTER_R} 0 0 1 ${r2(CX + OUTER_R * Math.cos(0.06))} ${r2(CY + OUTER_R * Math.sin(0.06))} Z`}
+            fill="url(#sweep-fill)"
+          />
+          <line
+            x1={CX}
+            y1={CY}
+            x2={r2(CX + OUTER_R * Math.cos(0.06))}
+            y2={r2(CY + OUTER_R * Math.sin(0.06))}
+            stroke="rgba(244,183,40,0.18)"
+            strokeWidth="0.75"
+          />
+        </motion.g>
 
         {/* Faint peripheral nodes */}
         <g>
@@ -380,9 +383,7 @@ export function LifeGraphConstellation() {
           {/* Live status pip on the hub bezel */}
           <circle cx={CX + 35} cy={CY - 35} r={4.5} fill="#0A0B0D" stroke="rgba(244,183,40,0.5)" strokeWidth="1" />
           <circle cx={CX + 35} cy={CY - 35} r={2.2} fill="#F4B728" filter="url(#hub-glow)">
-            {!reduce && (
-              <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite" />
-            )}
+            <animate attributeName="opacity" values="1;0.35;1" dur="2.4s" repeatCount="indefinite" />
           </circle>
 
           <text
@@ -437,7 +438,7 @@ export function LifeGraphConstellation() {
               <circle cx={node.x} cy={node.y} r={node.size / 2 + 26} fill={`url(#halo-${node.color})`} />
 
               {/* Active pulse */}
-              {node.active && !reduce && (
+              {node.active && (
                 <motion.circle
                   cx={node.x}
                   cy={node.y}
@@ -445,8 +446,8 @@ export function LifeGraphConstellation() {
                   fill="none"
                   stroke={color.hex}
                   strokeWidth="1"
-                  initial={false}
-                  animate={{ scale: [1, 1.55], opacity: [0.5, 0] }}
+                  initial={{ opacity: 0 }}
+                  animate={reduce ? undefined : { scale: [1, 1.55], opacity: [0.5, 0] }}
                   transition={{ duration: 2.6, repeat: Infinity, ease: 'easeOut', delay: index * 0.25 }}
                   style={{ transformOrigin: `${node.x}px ${node.y}px`, transformBox: 'view-box' }}
                 />
