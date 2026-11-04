@@ -148,12 +148,6 @@ export function LifeGraphConstellation() {
             <stop offset="100%" stopColor="#F4B728" stopOpacity="0" />
           </radialGradient>
 
-          <linearGradient id="horizon-fade" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#E8E6DF" stopOpacity="0" />
-            <stop offset="50%" stopColor="#E8E6DF" stopOpacity="0.035" />
-            <stop offset="100%" stopColor="#E8E6DF" stopOpacity="0" />
-          </linearGradient>
-
           <radialGradient id="grid-fade">
             <stop offset="0%" stopColor="#fff" stopOpacity="1" />
             <stop offset="68%" stopColor="#fff" stopOpacity="0.35" />
@@ -543,8 +537,8 @@ export function LifeGraphConstellation() {
                 y={node.y + node.size / 2 + 25}
                 textAnchor="middle"
                 fontFamily={MONO}
-                fontSize="11"
-                letterSpacing="0.14em"
+                fontSize="12"
+                letterSpacing="0.12em"
                 fill="#E8E6DF"
                 fillOpacity="0.92"
               >
@@ -555,8 +549,8 @@ export function LifeGraphConstellation() {
                 y={node.y + node.size / 2 + 39}
                 textAnchor="middle"
                 fontFamily={MONO}
-                fontSize="9"
-                letterSpacing="0.1em"
+                fontSize="9.5"
+                letterSpacing="0.08em"
                 fill={color.hex}
                 fillOpacity="0.72"
               >
