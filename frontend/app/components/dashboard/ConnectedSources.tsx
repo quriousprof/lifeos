@@ -135,6 +135,30 @@ function wait(ms: number): Promise<void> {
   return promise
 }
 
+// Persist handled booking emails so a remount / reload never re-triggers the same
+// message (the 5s poller would otherwise loop on it forever).
+const HANDLED_KEY = 'lifeos_gmail_handled'
+
+function loadHandled(): Set<string> {
+  if (typeof window === 'undefined') return new Set()
+  try {
+    const raw = window.localStorage.getItem(HANDLED_KEY)
+    const ids: unknown = raw ? JSON.parse(raw) : []
+    return new Set(Array.isArray(ids) ? ids.filter((x): x is string => typeof x === 'string') : [])
+  } catch {
+    return new Set()
+  }
+}
+
+function saveHandled(ids: Set<string>): void {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(HANDLED_KEY, JSON.stringify([...ids]))
+  } catch {
+    /* storage unavailable — in-memory dedup still holds for this session */
+  }
+}
+
 type BookingStage = 'found' | 'proposing' | 'purchasing' | 'done' | 'error'
 
 function StepRow({
@@ -189,14 +213,14 @@ function BookingFlowModal({
   const ranRef = useRef(false)
 
   useEffect(() => {
+    // Single-shot purchase. StrictMode (dev) mounts effects twice; a cleanup-based
+    // cancellation would abort the only run and freeze the dialog at "found".
     if (ranRef.current) return
     ranRef.current = true
-    let cancelled = false
 
     async function run() {
       try {
         await wait(1400) // let "Flight Booking Found!" land
-        if (cancelled) return
         setStage('proposing')
         const intent = await api.proposeIntent({
           product_id: 'test-gift-card-code',
@@ -208,17 +232,14 @@ function BookingFlowModal({
           trigger: 'gmail',
           intent: `Singapore travel eSIM — Gmail booking ${email?.id ?? ''}`.trim(),
         })
-        if (cancelled) return
         if (intent.policy_result !== 'allowed') {
           setError(intent.policy_reason ?? 'Blocked by autonomy policy')
           setStage('error')
           return
         }
         await wait(500)
-        if (cancelled) return
         setStage('purchasing')
         const result = await api.executeIntent(intent.id)
-        if (cancelled) return
         const firstOrder = result.invoice?.orders?.[0] ?? null
         if (!result.invoice || !firstOrder) {
           setError('No order returned from Bitrefill.')
@@ -228,15 +249,11 @@ function BookingFlowModal({
         setOrder(firstOrder)
         setStage('done')
       } catch (e) {
-        if (cancelled) return
         setError(e instanceof Error ? e.message : 'Unexpected error — check backend')
         setStage('error')
       }
     }
     run()
-    return () => {
-      cancelled = true
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -343,7 +360,8 @@ function GmailCard() {
   const [booking, setBooking] = useState<Trip | null>(null)
   const [bookingEmail, setBookingEmail] = useState<Email | null>(null)
   const pollRef = useRef<number | null>(null)
-  const handledRef = useRef(false)
+  const handledRef = useRef<Set<string>>(new Set())
+  const bookingOpenRef = useRef(false)
 
   const connected = source?.status === 'connected'
 
@@ -366,20 +384,30 @@ function GmailCard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Poll the inbox every 5s while connected; fire the booking flow once.
+  // Keep a ref in sync so the poller never opens a second dialog over an open one.
+  useEffect(() => {
+    bookingOpenRef.current = booking !== null
+  }, [booking])
+
+  // Poll the inbox every 5s while connected. Each source email fires the booking
+  // flow at most once (persisted in localStorage), so it never loops.
   useEffect(() => {
     if (!connected) return
+    handledRef.current = loadHandled()
 
     async function poll() {
-      if (handledRef.current) return
+      if (bookingOpenRef.current) return
       try {
         const res = await gmailApi.fetchEmails(5, true)
-        if (res.trip?.actionable && !handledRef.current) {
-          handledRef.current = true
-          clearInterval(pollRef.current ?? undefined)
-          const src = res.emails.find((e) => e.id === res.trip?.source_email_id) ?? null
+        const t = res.trip
+        const id = t?.source_email_id ?? null
+        if (t?.actionable && id && !handledRef.current.has(id) && !bookingOpenRef.current) {
+          handledRef.current.add(id)
+          saveHandled(handledRef.current)
+          bookingOpenRef.current = true
+          const src = res.emails.find((e) => e.id === id) ?? null
           setBookingEmail(src)
-          setBooking(res.trip)
+          setBooking(t)
         }
       } catch {
         /* transient — keep polling */
@@ -425,7 +453,7 @@ function GmailCard() {
 
   async function disconnect() {
     clearInterval(pollRef.current ?? undefined)
-    handledRef.current = false
+    bookingOpenRef.current = false
     try {
       await gmailApi.disconnect()
     } catch {
