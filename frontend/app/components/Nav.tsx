@@ -16,9 +16,10 @@ export function Nav() {
       <div className="flex items-center gap-2">
         <span className="font-mono text-mist-dim">LIFE</span>
         <span className="font-mono text-signal tracking-widest">OS</span>
-        <span
+        <motion.span
           className="w-1.5 h-1.5 rounded-full bg-signal"
-          style={{ animation: 'pulse-signal 2s ease-in-out infinite' }}
+          animate={{ boxShadow: ['0 0 0 0 rgba(244,183,40,0.45)', '0 0 0 6px rgba(244,183,40,0)', '0 0 0 0 rgba(244,183,40,0.45)'] }}
+          transition={{ duration: 2, ease: 'easeInOut', repeat: Infinity }}
           aria-hidden="true"
         />
       </div>
