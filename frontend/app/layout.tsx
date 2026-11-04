@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Fraunces, Hanken_Grotesk, JetBrains_Mono } from 'next/font/google'
+import { Fraunces, Geist_Mono, Hanken_Grotesk } from 'next/font/google'
 import React from 'react'
 import './globals.css'
 
@@ -16,9 +16,9 @@ const hanken = Hanken_Grotesk({
   display: 'swap',
 })
 
-const jetbrainsMono = JetBrains_Mono({
+const geistMono = Geist_Mono({
   subsets: ['latin'],
-  variable: '--font-jb-mono',
+  variable: '--font-geist-mono',
   display: 'swap',
 })
 
@@ -32,7 +32,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${hanken.variable} ${jetbrainsMono.variable}`}
+      className={`${fraunces.variable} ${hanken.variable} ${geistMono.variable}`}
     >
       <body className="bg-ink text-mist font-body antialiased min-h-screen">
         {children}

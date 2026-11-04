@@ -178,7 +178,7 @@ export function LifeGraphConstellation() {
                 textAnchor="middle"
                 fontSize="10"
                 fill="rgba(138,143,153,0.8)"
-                fontFamily="var(--font-jb-mono)"
+                fontFamily="var(--font-geist-mono)"
               >
                 {node.label}
               </text>
