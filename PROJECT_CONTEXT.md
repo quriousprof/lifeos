@@ -146,7 +146,7 @@ app/
 
 ## 10. Backend — live Bitrefill (implemented)
 
-**Status: Phase A shipped.** Python **FastAPI** service at `backend/` (uv, Python 3.13) with a **real** Bitrefill REST API v2 integration. Connectors (Gmail/Calendar/OAuth) remain mocked — only commerce is live.
+**Status: Phase A shipped.** Python **FastAPI** service at `backend/` (uv, Python 3.13) with a **real** Bitrefill REST API v2 integration. **Gmail is now a live read-only connector** (real Google OAuth, `gmail.readonly`) — see plan 04; Calendar stays mocked.
 
 - Run: `cd backend && cp .env.example .env` (set `BITREFILL_API_KEY`) `&& uv run main.py`. See `backend/README.md`.
 - **Agentic loop:** `propose → policy → re-quote → create invoice → reconcile (polling) → redemption → audit`. The agent proposes; `policy.py` decides (per-tx cap, monthly budget, merchant/category allowlist, kill switch) — caps in code, never a prompt. Idempotency key per intent → no duplicate orders. Paid ≠ delivered: polls each order to terminal state.
@@ -165,3 +165,4 @@ app/
 | Initial UI (mocked) | `plans/01-initial-ui.md` | ✅ done — merged to `main` |
 | Phosphor + brand icons | `plans/02-phosphor-icons.md` | ✅ done — merged from `ui-deepseek` |
 | Backend: Bitrefill + Zcash | `plans/03-backend-bitrefill-zcash.md` | 🟡 Phase A (Bitrefill) done · Phase B (Zcash) pending |
+| Gmail connector: OAuth + fetch → eSIM | `plans/04-gmail-connector-oauth.md` | ✅ built — real Google OAuth, fetch 5, trip extractor → live eSIM pipeline |
