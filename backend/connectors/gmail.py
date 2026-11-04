@@ -7,6 +7,7 @@ ever leaves the backend. Scope is locked to gmail.readonly.
 from __future__ import annotations
 
 import base64
+import json
 import secrets
 from email.utils import parseaddr
 from typing import Any
@@ -39,20 +40,27 @@ def is_configured() -> bool:
     return bool(settings.google_client_id and settings.google_client_secret)
 
 
-def _new_flow(state: str | None = None) -> Flow:
-    return Flow.from_client_config(
+def _new_flow(state: str | None = None, code_verifier: str | None = None) -> Flow:
+    flow = Flow.from_client_config(
         _client_config(),
         scopes=settings.google_scopes,
         redirect_uri=settings.google_oauth_redirect_uri,
         state=state,
     )
+    # Pin our own PKCE verifier so the auth + callback steps agree (separate Flow
+    # instances otherwise lose the auto-generated verifier → "Missing code verifier").
+    flow.autogenerate_code_verifier = False
+    if code_verifier is not None:
+        flow.code_verifier = code_verifier
+    return flow
 
 
 def build_auth_url() -> str:
-    """Return the Google consent URL; store CSRF state for callback verification."""
+    """Return the Google consent URL; store CSRF state + PKCE verifier for callback."""
     state = secrets.token_urlsafe(24)
-    db.set_oauth_state(PROVIDER, state)
-    flow = _new_flow(state=state)
+    code_verifier = secrets.token_urlsafe(64)  # 43-128 char PKCE verifier
+    db.set_oauth_state(PROVIDER, json.dumps({"state": state, "verifier": code_verifier}))
+    flow = _new_flow(state=state, code_verifier=code_verifier)
     auth_url, _ = flow.authorization_url(
         access_type="offline",      # request a refresh token
         include_granted_scopes="true",
@@ -62,17 +70,28 @@ def build_auth_url() -> str:
 
 
 def exchange_code(code: str, state: str) -> dict[str, Any]:
-    """Validate state, exchange code for tokens, persist, return {email}."""
-    expected = db.get_oauth_state(PROVIDER)
-    if not expected or not secrets.compare_digest(expected, state):
+    """Validate state, exchange code (with stored PKCE verifier), persist, return {email}."""
+    stored = db.get_oauth_state(PROVIDER)
+    expected_state, code_verifier = _unpack_state(stored)
+    if not expected_state or not secrets.compare_digest(expected_state, state):
         raise PermissionError("oauth_state_mismatch")
 
-    flow = _new_flow(state=state)
+    flow = _new_flow(state=state, code_verifier=code_verifier)
     flow.fetch_token(code=code)
     creds = flow.credentials
     email = _profile_email(creds)
     _persist(creds, email)
     return {"email": email}
+
+
+def _unpack_state(stored: str | None) -> tuple[str | None, str | None]:
+    if not stored:
+        return None, None
+    try:
+        data = json.loads(stored)
+        return data.get("state"), data.get("verifier")
+    except (json.JSONDecodeError, AttributeError):
+        return stored, None  # legacy rows stored a bare state string
 
 
 def _persist(creds: Credentials, email: str | None) -> None:
