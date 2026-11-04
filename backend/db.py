@@ -103,6 +103,10 @@ def init_db() -> None:
                 state TEXT,
                 updated_at TEXT NOT NULL
             );
+            CREATE TABLE IF NOT EXISTS processed_emails (
+                message_id TEXT PRIMARY KEY,
+                processed_at TEXT NOT NULL
+            );
             """
         )
         row = conn.execute("SELECT data FROM policy WHERE id = 1").fetchone()
@@ -206,3 +210,15 @@ def set_oauth_state(provider: str, state: str) -> None:
 def get_oauth_state(provider: str) -> str | None:
     row = query_one("SELECT state FROM oauth_tokens WHERE provider = ?", (provider,))
     return row["state"] if row else None
+
+
+# ── Processed-email dedup (fire each booking trigger exactly once) ──────────────
+def is_email_processed(message_id: str) -> bool:
+    return query_one("SELECT 1 FROM processed_emails WHERE message_id = ?", (message_id,)) is not None
+
+
+def mark_email_processed(message_id: str) -> None:
+    execute(
+        "INSERT OR IGNORE INTO processed_emails (message_id, processed_at) VALUES (?, ?)",
+        (message_id, _now_iso()),
+    )

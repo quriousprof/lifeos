@@ -10,6 +10,7 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 import audit
+import db
 from config import settings
 from connectors import gmail, trip
 from models import GmailAuthUrl, GmailFetchResult, GmailStatus
@@ -132,7 +133,11 @@ async def fetch(limit: int = Query(5, ge=1, le=5), poll: bool = Query(False)):
             actor="user",
             fulfillment_status="gmail",
         )
-    if trip_dict:
+    # Fire the trigger (and audit it) exactly once per source email — otherwise a
+    # 5s poller would re-detect the same booking forever and loop the ledger.
+    src_id = trip_dict.get("source_email_id") if trip_dict else None
+    if trip_dict and src_id and not db.is_email_processed(src_id):
+        db.mark_email_processed(src_id)
         audit.record(
             action="trigger_detected",
             reason=(
