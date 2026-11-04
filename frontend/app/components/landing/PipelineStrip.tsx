@@ -3,35 +3,36 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'motion/react'
 import { Card } from '@/app/components/ui/Card'
+import { ICON, type IconKey } from '@/app/lib/icons'
 
-const steps = [
+const steps: { num: string; icon: IconKey; label: string; desc: string }[] = [
   {
     num: '01',
-    icon: '🤖',
+    icon: 'propose',
     label: 'PROPOSE',
     desc: 'Agent identifies a useful action from Life Graph context',
   },
   {
     num: '02',
-    icon: '⬡',
+    icon: 'policy',
     label: 'POLICY CHECK',
     desc: 'Deterministic code checks category, merchant, amount, budget',
   },
   {
     num: '03',
-    icon: '🔑',
+    icon: 'authorize',
     label: 'AUTHORIZE',
     desc: 'Wallet component approves the bounded spend',
   },
   {
     num: '04',
-    icon: '⚡',
+    icon: 'execute',
     label: 'EXECUTE',
     desc: 'Commerce API creates the order',
   },
   {
     num: '05',
-    icon: '✓',
+    icon: 'verify',
     label: 'VERIFY',
     desc: 'Fulfilment confirmed, audit log written',
   },
@@ -67,32 +68,35 @@ export function PipelineStrip() {
 
         {/* Steps */}
         <div ref={ref} className="flex flex-col lg:flex-row items-stretch gap-0 mt-12">
-          {steps.map((step, index) => (
-            <div key={step.num} className="flex lg:flex-row flex-col items-center flex-1 gap-0">
-              <motion.div
-                className="flex-1 w-full"
-                initial={{ opacity: 0, y: 24 }}
-                animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-              >
-                <Card className="h-full p-6 flex flex-col items-center text-center gap-3">
-                  <span className="font-mono text-xs text-mist-dim">{step.num}</span>
-                  <span className="text-2xl">{step.icon}</span>
-                  <span className="font-mono text-xs text-signal uppercase tracking-widest">
-                    {step.label}
-                  </span>
-                  <p className="font-body text-sm text-mist-dim">{step.desc}</p>
-                </Card>
-              </motion.div>
+          {steps.map((step, index) => {
+            const StepIcon = ICON[step.icon]
+            return (
+              <div key={step.num} className="flex lg:flex-row flex-col items-center flex-1 gap-0">
+                <motion.div
+                  className="flex-1 w-full"
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 24 }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                >
+                  <Card className="h-full p-6 flex flex-col items-center text-center gap-3">
+                    <span className="font-mono text-xs text-mist-dim">{step.num}</span>
+                    <StepIcon size={24} weight="duotone" className="text-signal" />
+                    <span className="font-mono text-xs text-signal uppercase tracking-widest">
+                      {step.label}
+                    </span>
+                    <p className="font-body text-sm text-mist-dim">{step.desc}</p>
+                  </Card>
+                </motion.div>
 
-              {/* Arrow between steps */}
-              {index < steps.length - 1 && (
-                <div className="hidden lg:flex items-center justify-center px-2 text-mist-dim/40 text-xl flex-shrink-0">
-                  →
-                </div>
-              )}
-            </div>
-          ))}
+                {/* Arrow between steps */}
+                {index < steps.length - 1 && (
+                  <div className="hidden lg:flex items-center justify-center px-2 text-mist-dim/40 text-xl flex-shrink-0">
+                    →
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
 
         {/* Callout box */}
@@ -102,8 +106,13 @@ export function PipelineStrip() {
           animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 16 }}
           transition={{ delay: 0.6, duration: 0.5 }}
         >
-          ⚠ The LLM proposes an action. It never holds keys, spending caps live in backend code,
-          and every transaction is independently verified.
+          <span className="flex items-start gap-2">
+            <ICON.warning size={16} weight="bold" className="text-alert shrink-0 mt-px" />
+            <span>
+              The LLM proposes an action. It never holds keys, spending caps live in backend code,
+              and every transaction is independently verified.
+            </span>
+          </span>
         </motion.div>
       </div>
     </section>

@@ -2,16 +2,27 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
+import { BrandIcon } from '@/app/components/ui/BrandIcon'
+import { ICON, type IconKey } from '@/app/lib/icons'
 
-const nodes = [
-  { id: 'user',   x: 240, y: 210, label: 'You',           icon: '◉', color: 'mist',     size: 44 },
-  { id: 'gmail',  x: 100, y: 90,  label: 'Gmail',         icon: '✉', color: 'signal',   size: 32 },
-  { id: 'cal',    x: 370, y: 80,  label: 'Calendar',      icon: '□', color: 'signal',   size: 32 },
-  { id: 'subs',   x: 60,  y: 240, label: 'Subscriptions', icon: '↻', color: 'mist',     size: 32 },
-  { id: 'trig',   x: 400, y: 190, label: 'Triggers',      icon: '⚡', color: 'signal',   size: 32 },
-  { id: 'policy', x: 380, y: 330, label: 'Policy',        icon: '⬡', color: 'mist',     size: 32 },
-  { id: 'zcash',  x: 160, y: 350, label: 'Zcash',         icon: 'ℤ', color: 'shielded', size: 32 },
-  { id: 'bfill',  x: 100, y: 330, label: 'Bitrefill',     icon: '⚙', color: 'shielded', size: 28 },
+type ConstellationNode = {
+  id: string
+  x: number
+  y: number
+  label: string
+  color: 'mist' | 'signal' | 'shielded'
+  size: number
+} & ({ kind: 'brand'; slug: string } | { kind: 'icon'; iconKey: IconKey })
+
+const nodes: ConstellationNode[] = [
+  { id: 'user',   x: 240, y: 210, label: 'You',           kind: 'icon',  iconKey: 'user',          color: 'mist',     size: 44 },
+  { id: 'gmail',  x: 100, y: 90,  label: 'Gmail',         kind: 'brand', slug: 'gmail',            color: 'signal',   size: 32 },
+  { id: 'cal',    x: 370, y: 80,  label: 'Calendar',      kind: 'brand', slug: 'calendar',         color: 'signal',   size: 32 },
+  { id: 'subs',   x: 60,  y: 240, label: 'Subscriptions', kind: 'icon',  iconKey: 'subscriptions', color: 'mist',     size: 32 },
+  { id: 'trig',   x: 400, y: 190, label: 'Triggers',      kind: 'icon',  iconKey: 'triggers',      color: 'signal',   size: 32 },
+  { id: 'policy', x: 380, y: 330, label: 'Policy',        kind: 'icon',  iconKey: 'policy',        color: 'mist',     size: 32 },
+  { id: 'zcash',  x: 160, y: 350, label: 'Zcash',         kind: 'brand', slug: 'zcash',            color: 'shielded', size: 32 },
+  { id: 'bfill',  x: 100, y: 330, label: 'Bitrefill',     kind: 'brand', slug: 'bitrefill',        color: 'shielded', size: 28 },
 ]
 
 const colorMap: Record<string, { fill: string; stroke: string }> = {
@@ -93,6 +104,7 @@ export function LifeGraphConstellation() {
           const { fill, stroke } = colorMap[node.color]
           const textColor = textColorMap[node.color]
           const isPulse = node.id === 'trig' || node.id === 'gmail'
+          const NodeIcon = node.kind === 'icon' ? ICON[node.iconKey] : null
 
           return (
             <motion.g
@@ -138,17 +150,26 @@ export function LifeGraphConstellation() {
               />
 
               {/* Node icon */}
-              <text
-                x={node.x}
-                y={node.y}
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={node.size * 0.4}
-                fill={textColor}
-                fontFamily="var(--font-jb-mono)"
-              >
-                {node.icon}
-              </text>
+              {node.kind === 'brand' ? (
+                <foreignObject
+                  x={node.x - node.size * 0.275}
+                  y={node.y - node.size * 0.275}
+                  width={node.size * 0.55}
+                  height={node.size * 0.55}
+                >
+                  <div className="flex h-full w-full items-center justify-center">
+                    <BrandIcon slug={node.slug} size={Math.round(node.size * 0.55)} />
+                  </div>
+                </foreignObject>
+              ) : NodeIcon ? (
+                <NodeIcon
+                  size={Math.round(node.size * 0.45)}
+                  weight="duotone"
+                  color={textColor}
+                  x={node.x - Math.round(node.size * 0.45) / 2}
+                  y={node.y - Math.round(node.size * 0.45) / 2}
+                />
+              ) : null}
 
               {/* Node label */}
               <text

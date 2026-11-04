@@ -2,6 +2,7 @@
 
 import { useRef } from 'react'
 import { motion, useInView } from 'motion/react'
+import { ICON } from '@/app/lib/icons'
 
 const paymentSteps = [
   { num: 1, label: 'intent' },
@@ -62,11 +63,13 @@ export function PrivacyZcash() {
                   transition={{ delay: 0.2 + i * 0.08, duration: 0.4 }}
                 >
                   <span
-                    className={`flex-shrink-0 font-mono text-xs mt-0.5 ${
-                      claim.ok ? 'text-shielded' : 'text-alert'
-                    }`}
+                    className={`flex-shrink-0 mt-0.5 ${claim.ok ? 'text-shielded' : 'text-alert'}`}
                   >
-                    {claim.ok ? '✓' : '⚠'}
+                    {claim.ok ? (
+                      <ICON.checkCircle size={14} weight="fill" />
+                    ) : (
+                      <ICON.warning size={14} weight="bold" />
+                    )}
                   </span>
                   <span>{claim.text}</span>
                 </motion.li>

@@ -2,8 +2,20 @@
 
 import { useRef } from 'react'
 import { motion, useInView } from 'motion/react'
+import { ICON } from '@/app/lib/icons'
 
-const steps = [
+function CheckMark() {
+  return (
+    <ICON.check
+      size={12}
+      weight="bold"
+      className="inline-block align-text-bottom text-shielded"
+      aria-label="passes"
+    />
+  )
+}
+
+const steps: { num: number; title: string; detail: React.ReactNode }[] = [
   {
     num: 1,
     title: 'Connect Gmail + Calendar',
@@ -27,7 +39,12 @@ const steps = [
   {
     num: 5,
     title: 'Policy check',
-    detail: 'Category: esim ✓ · Merchant: bitrefill ✓ · $9 < $20 cap ✓',
+    detail: (
+      <>
+        Category: esim <CheckMark /> · Merchant: bitrefill <CheckMark /> · $9 &lt; $20 cap{' '}
+        <CheckMark />
+      </>
+    ),
   },
   {
     num: 6,

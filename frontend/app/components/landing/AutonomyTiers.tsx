@@ -3,6 +3,7 @@
 import { useRef } from 'react'
 import { motion, useInView } from 'motion/react'
 import { Badge } from '@/app/components/ui/Badge'
+import { ICON } from '@/app/lib/icons'
 
 const tiers = [
   {
@@ -84,7 +85,7 @@ export function AutonomyTiers() {
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    {tier.lock && <span className="text-sm">🔒</span>}
+                    {tier.lock && <ICON.lock size={14} weight="fill" className="text-alert" />}
                     <span className="font-mono text-sm uppercase tracking-wider text-mist">
                       {tier.label}
                     </span>
