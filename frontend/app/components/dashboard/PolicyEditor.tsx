@@ -1,89 +1,216 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useLifeOS } from '@/app/providers/LifeOSProvider'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Card } from '@/app/components/ui/Card'
 import { Badge } from '@/app/components/ui/Badge'
 import { ICON } from '@/app/lib/icons'
+import { api, ApiError } from '@/app/lib/api'
+import type { Policy } from '@/app/lib/api'
 
-const ALL_CATEGORIES = ['esim', 'subscription', 'media', 'productivity', 'travel', 'groceries']
+const CATEGORIES = ['esim', 'gift_card', 'phone_refill', 'subscription', 'media']
+const APPROVAL_MODES: Policy['approval_mode'][] = ['auto', 'conditional', 'manual']
+
+function errorMessage(err: unknown): string {
+  if (err instanceof ApiError) return err.message
+  if (err instanceof Error) return err.message
+  return String(err)
+}
 
 export function PolicyEditor() {
-  const { policy, updatePolicy } = useLifeOS()
+  const [policy, setPolicy] = useState<Policy | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
   const [newMerchant, setNewMerchant] = useState('')
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const inflightRef = useRef<AbortController | null>(null)
 
-  const spentPct = policy.monthlyBudget > 0
-    ? (policy.monthlySpent / policy.monthlyBudget) * 100
-    : 0
+  useEffect(() => {
+    const ctrl = new AbortController()
+    api
+      .getPolicy(ctrl.signal)
+      .then(setPolicy)
+      .catch((err) => {
+        if (!ctrl.signal.aborted) setError(errorMessage(err))
+      })
+    return () => ctrl.abort()
+  }, [])
 
+  const flush = useCallback(async (patch: Partial<Policy>) => {
+    inflightRef.current?.abort()
+    const ctrl = new AbortController()
+    inflightRef.current = ctrl
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await api.updatePolicy(patch, ctrl.signal)
+      setPolicy(updated)
+    } catch (err) {
+      if (!ctrl.signal.aborted) setError(errorMessage(err))
+    } finally {
+      if (!ctrl.signal.aborted) setSaving(false)
+    }
+  }, [])
+
+  // Optimistic local update + debounced PUT.
+  const commit = useCallback(
+    (patch: Partial<Policy>) => {
+      setPolicy((prev) => (prev ? { ...prev, ...patch } : prev))
+      clearTimeout(timerRef.current)
+      timerRef.current = setTimeout(() => void flush(patch), 400)
+    },
+    [flush],
+  )
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(timerRef.current)
+      inflightRef.current?.abort()
+    }
+  }, [])
+
+  if (!policy) {
+    return (
+      <div>
+        <h1 className="font-display text-3xl text-mist mb-2">Autonomy Policy</h1>
+        {error ? (
+          <div className="bg-alert/5 border border-alert/20 rounded-lg p-3 font-mono text-xs text-alert">
+            {error}
+          </div>
+        ) : (
+          <div className="font-mono text-xs text-mist-dim py-8">Loading live policy…</div>
+        )}
+      </div>
+    )
+  }
+
+  const demoPasses = policy.per_tx_limit >= 10
+  const spentPct =
+    policy.monthly_budget > 0 ? (policy.monthly_spent / policy.monthly_budget) * 100 : 0
   const progressColor =
     spentPct > 95 ? 'bg-alert' : spentPct > 80 ? 'bg-signal' : 'bg-shielded'
 
+  function removeMerchant(m: string) {
+    if (!policy) return
+    commit({ merchant_allowlist: policy.merchant_allowlist.filter((x) => x !== m) })
+  }
+
+  function addMerchant() {
+    if (!policy) return
+    const m = newMerchant.trim().toLowerCase()
+    if (!m || policy.merchant_allowlist.includes(m)) {
+      setNewMerchant('')
+      return
+    }
+    commit({ merchant_allowlist: [...policy.merchant_allowlist, m] })
+    setNewMerchant('')
+  }
+
+  function toggleCategory(cat: string) {
+    if (!policy) return
+    const next = policy.category_allowlist.includes(cat)
+      ? policy.category_allowlist.filter((c) => c !== cat)
+      : [...policy.category_allowlist, cat]
+    commit({ category_allowlist: next })
+  }
+
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="font-display text-3xl text-mist mb-2">Autonomy Policy</h1>
-        <p className="font-body text-sm text-mist-dim max-w-2xl">
-          Policy is enforced deterministically in backend code. The agent proposes; policy decides.
-          Changes apply immediately to future triggers.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="font-display text-3xl text-mist">Autonomy Policy</h1>
+            <Badge variant="shielded">LIVE</Badge>
+          </div>
+          <p className="font-body text-sm text-mist-dim max-w-2xl">
+            These caps are enforced by the backend before any purchase. Edits save to the live
+            policy immediately.
+          </p>
+        </div>
+        {saving && (
+          <span className="font-mono text-[10px] uppercase tracking-wider text-signal mt-2">
+            saving…
+          </span>
+        )}
       </div>
 
-      <div className="bg-signal/5 border border-signal/20 rounded-xl p-4 mb-6 font-mono text-xs text-mist-dim">
-        Spend caps are enforced in code, not in an LLM prompt. Changing limits below $9 will block
-        the eSIM purchase in the demo.
+      <div className="bg-signal/5 border border-signal/20 rounded-xl p-4 mb-6 font-mono text-xs text-mist-dim leading-relaxed">
+        Caps are enforced in backend code, not a prompt. Changes apply immediately to the next
+        agent purchase.
       </div>
+
+      {error && (
+        <div className="bg-alert/5 border border-alert/20 rounded-lg p-3 font-mono text-xs text-alert mb-4">
+          {error}
+        </div>
+      )}
 
       <div className="flex flex-col gap-4">
         {/* Spending limits */}
-        <Card className="p-5">
-          <h2 className="font-mono text-xs text-signal uppercase tracking-widest mb-4">
-            Spending Limits
-          </h2>
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <ICON.threshold size={18} className="text-signal" />
+            <h2 className="font-display text-lg text-mist">Spending limits</h2>
+          </div>
 
           <div className="mb-5">
             <div className="flex items-center justify-between mb-2">
-              <label className="font-mono text-xs text-mist-dim">Per-transaction limit</label>
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-sm text-mist">${policy.perTxLimit}</span>
-                {policy.perTxLimit < 9 ? (
-                  <Badge variant="alert" size="sm">Will block eSIM demo</Badge>
-                ) : policy.perTxLimit <= 20 ? (
-                  <Badge variant="signal" size="sm">eSIM demo: $9 passes</Badge>
-                ) : null}
-              </div>
+              <span className="font-mono text-[11px] uppercase tracking-wider text-mist-dim">
+                Per-transaction limit
+              </span>
+              {demoPasses ? (
+                <Badge variant="signal" size="sm">
+                  $10 demo passes
+                </Badge>
+              ) : (
+                <Badge variant="alert" size="sm">
+                  Will block the $10 demo buy
+                </Badge>
+              )}
             </div>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={policy.perTxLimit}
-              onChange={(e) => updatePolicy({ perTxLimit: Number(e.target.value) })}
-              className="w-full accent-signal"
-            />
-            <div className="flex justify-between font-mono text-xs text-mist-dim/60 mt-1">
-              <span>$0</span><span>$100</span>
+            <div className="flex items-center gap-3">
+              <span className="font-mono text-mist">$</span>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                value={policy.per_tx_limit}
+                onChange={(e) => commit({ per_tx_limit: Number(e.target.value) })}
+                className="w-24 bg-ink-3 border border-line rounded-lg px-3 py-2 font-mono text-sm text-mist focus:border-signal/50 focus:outline-none"
+              />
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={policy.per_tx_limit}
+                onChange={(e) => commit({ per_tx_limit: Number(e.target.value) })}
+                className="flex-1 accent-signal"
+              />
             </div>
           </div>
 
-          <div className="mb-4">
+          <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="font-mono text-xs text-mist-dim">Monthly budget</label>
-              <span className="font-mono text-xs text-mist-dim">
-                ${policy.monthlySpent.toFixed(2)} of ${policy.monthlyBudget}
+              <span className="font-mono text-[11px] uppercase tracking-wider text-mist-dim">
+                Monthly budget
+              </span>
+              <span className="font-mono text-[11px] text-mist-dim">
+                ${policy.monthly_spent} of ${policy.monthly_budget}
               </span>
             </div>
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              value={policy.monthlyBudget}
-              onChange={(e) => updatePolicy({ monthlyBudget: Number(e.target.value) })}
-              className="w-full bg-ink-3 border border-line rounded-lg px-3 py-2 font-mono text-sm text-mist mb-2 focus:outline-none focus:border-signal/50"
-            />
+            <div className="flex items-center gap-3 mb-3">
+              <span className="font-mono text-mist">$</span>
+              <input
+                type="number"
+                min={0}
+                value={policy.monthly_budget}
+                onChange={(e) => commit({ monthly_budget: Number(e.target.value) })}
+                className="w-28 bg-ink-3 border border-line rounded-lg px-3 py-2 font-mono text-sm text-mist focus:border-signal/50 focus:outline-none"
+              />
+            </div>
             <div className="h-2 bg-ink-3 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all ${progressColor}`}
+                className={`h-full ${progressColor} transition-all`}
                 style={{ width: `${Math.min(spentPct, 100)}%` }}
               />
             </div>
@@ -91,56 +218,42 @@ export function PolicyEditor() {
         </Card>
 
         {/* Merchant allowlist */}
-        <Card className="p-5">
-          <h2 className="font-mono text-xs text-signal uppercase tracking-widest mb-4">
-            Merchant Allowlist
-          </h2>
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <ICON.commerce size={18} className="text-signal" />
+            <h2 className="font-display text-lg text-mist">Merchant allowlist</h2>
+          </div>
           <div className="flex flex-wrap gap-2 mb-3">
-            {policy.merchantAllowlist.map((merchant) => (
+            {policy.merchant_allowlist.map((m) => (
               <span
-                key={merchant}
-                className="flex items-center gap-1.5 font-mono text-xs bg-ink-3 border border-line rounded-full px-3 py-1"
+                key={m}
+                className="inline-flex items-center gap-1.5 bg-ink-3 border border-line rounded-full pl-3 pr-1.5 py-1 font-mono text-xs text-mist"
               >
-                {merchant}
+                {m}
                 <button
-                  onClick={() =>
-                    updatePolicy({
-                      merchantAllowlist: policy.merchantAllowlist.filter((m) => m !== merchant),
-                    })
-                  }
-                  className="text-mist-dim hover:text-alert transition-colors leading-none"
+                  onClick={() => removeMerchant(m)}
+                  className="text-mist-dim hover:text-alert transition-colors"
+                  aria-label={`Remove ${m}`}
                 >
-                  <ICON.cross size={12} weight="bold" />
+                  <ICON.cross size={12} />
                 </button>
               </span>
             ))}
+            {policy.merchant_allowlist.length === 0 && (
+              <span className="font-mono text-xs text-mist-dim">No merchants allowed</span>
+            )}
           </div>
           <div className="flex gap-2">
             <input
-              type="text"
               value={newMerchant}
               onChange={(e) => setNewMerchant(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && newMerchant.trim()) {
-                  updatePolicy({
-                    merchantAllowlist: [...policy.merchantAllowlist, newMerchant.trim().toLowerCase()],
-                  })
-                  setNewMerchant('')
-                }
-              }}
-              placeholder="Add merchant..."
-              className="flex-1 bg-ink-3 border border-line rounded-lg px-3 py-2 font-mono text-xs text-mist placeholder:text-mist-dim/40 focus:outline-none focus:border-signal/50"
+              onKeyDown={(e) => e.key === 'Enter' && addMerchant()}
+              placeholder="add merchant"
+              className="flex-1 bg-ink-3 border border-line rounded-lg px-3 py-2 font-mono text-sm text-mist focus:border-signal/50 focus:outline-none"
             />
             <button
-              onClick={() => {
-                if (newMerchant.trim()) {
-                  updatePolicy({
-                    merchantAllowlist: [...policy.merchantAllowlist, newMerchant.trim().toLowerCase()],
-                  })
-                  setNewMerchant('')
-                }
-              }}
-              className="bg-signal/10 text-signal border border-signal/30 font-mono text-xs px-4 py-2 rounded-lg hover:bg-signal/20 transition-colors"
+              onClick={addMerchant}
+              className="bg-signal/10 border border-signal/30 text-signal rounded-lg px-4 py-2 font-mono text-xs uppercase tracking-wider hover:bg-signal/20 transition-colors"
             >
               Add
             </button>
@@ -148,78 +261,72 @@ export function PolicyEditor() {
         </Card>
 
         {/* Category allowlist */}
-        <Card className="p-5">
-          <h2 className="font-mono text-xs text-signal uppercase tracking-widest mb-4">
-            Category Allowlist
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-            {ALL_CATEGORIES.map((cat) => {
-              const checked = policy.categoryAllowlist.includes(cat)
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <ICON.audit size={18} className="text-signal" />
+            <h2 className="font-display text-lg text-mist">Category allowlist</h2>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {CATEGORIES.map((cat) => {
+              const on = policy.category_allowlist.includes(cat)
               return (
-                <label
+                <button
                   key={cat}
-                  className="flex items-center gap-2 cursor-pointer select-none"
+                  onClick={() => toggleCategory(cat)}
+                  className={[
+                    'flex items-center gap-2 rounded-lg px-3 py-2 font-mono text-xs transition-colors border',
+                    on
+                      ? 'bg-shielded/10 border-shielded/30 text-shielded'
+                      : 'bg-ink-3 border-line text-mist-dim hover:text-mist',
+                  ].join(' ')}
                 >
-                  <span
-                    className={
-                      'w-4 h-4 rounded border flex items-center justify-center text-xs transition-colors ' +
-                      (checked
-                        ? 'bg-signal border-signal text-ink'
-                        : 'border-line bg-ink-3 text-transparent')
-                    }
-                    onClick={() =>
-                      updatePolicy({
-                        categoryAllowlist: checked
-                          ? policy.categoryAllowlist.filter((c) => c !== cat)
-                          : [...policy.categoryAllowlist, cat],
-                      })
-                    }
-                  >
-                    {checked && <ICON.check size={12} weight="bold" />}
-                  </span>
-                  <span className="font-mono text-xs text-mist">{cat}</span>
-                </label>
+                  {on ? (
+                    <ICON.checkCircle size={14} weight="fill" />
+                  ) : (
+                    <ICON.simulated size={14} />
+                  )}
+                  {cat}
+                </button>
               )
             })}
           </div>
         </Card>
 
         {/* Approval mode */}
-        <Card className="p-5">
-          <h2 className="font-mono text-xs text-signal uppercase tracking-widest mb-4">
-            Approval Mode
-          </h2>
-          <div className="flex flex-col gap-3">
-            {(
-              [
-                { value: 'auto',        desc: 'Execute if all policy conditions pass' },
-                { value: 'conditional', desc: 'Execute only if explicit rules match' },
-                { value: 'manual',      desc: 'Always require explicit approval' },
-              ] as const
-            ).map(({ value, desc }) => (
-              <label key={value} className="flex items-center gap-3 cursor-pointer">
-                <span
-                  className={
-                    'w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ' +
-                    (policy.approvalMode === value
-                      ? 'border-signal bg-signal'
-                      : 'border-line bg-ink-3')
-                  }
-                  onClick={() => updatePolicy({ approvalMode: value })}
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <ICON.policy size={18} className="text-signal" />
+            <h2 className="font-display text-lg text-mist">Approval mode</h2>
+          </div>
+          <div className="flex flex-col gap-2">
+            {APPROVAL_MODES.map((mode) => {
+              const on = policy.approval_mode === mode
+              return (
+                <button
+                  key={mode}
+                  onClick={() => commit({ approval_mode: mode })}
+                  className={[
+                    'flex items-center gap-3 rounded-lg px-3 py-2.5 font-mono text-sm transition-colors border text-left',
+                    on
+                      ? 'bg-signal/10 border-signal/30 text-signal'
+                      : 'bg-ink-3 border-line text-mist-dim hover:text-mist',
+                  ].join(' ')}
                 >
-                  {policy.approvalMode === value && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-ink" />
-                  )}
-                </span>
-                <div>
-                  <span className="font-mono text-xs text-mist capitalize">{value}</span>
-                  <span className="font-body text-xs text-mist-dim ml-2">— {desc}</span>
-                </div>
-              </label>
-            ))}
+                  <span
+                    className={[
+                      'inline-block w-3.5 h-3.5 rounded-full border',
+                      on ? 'bg-signal border-signal' : 'border-line',
+                    ].join(' ')}
+                  />
+                  {mode}
+                </button>
+              )
+            })}
           </div>
         </Card>
       </div>
     </div>
   )
 }
+
+export default PolicyEditor
