@@ -19,7 +19,7 @@ flowchart LR
     T[Trigger / signal] --> P[Agent proposes intent]
     P --> POL{Policy engine<br/>caps · allowlist · kill switch}
     POL -->|blocked + reason| X[Stop · audit]
-    POL -->|allowed| EX[Execute: create & pay invoice]
+    POL -->|allowed| EX[Execute: Bitrefill invoice<br/>create & pay]
     EX --> R[Reconcile each order<br/>paid ≠ delivered]
     R --> V[Redemption + verify]
     V --> A[(Audit ledger)]
@@ -31,7 +31,7 @@ flowchart LR
 
 | Area | Notes |
 | --- | --- |
-| **Landing page** | "Obsidian Signal" theme, animated Life Graph constellation, scroll reveals |
+| **Landing page** | "Obsidian Signal" theme, animated Life Graph constellation, Bitrefill commerce rail, scroll reveals |
 | **Agentic chat** | Natural-language purchase flow — preset → propose → policy → execute → redemption code |
 | **Dashboard** | Sources, Life Graph, Triggers, Policy, Commerce, Shielded Pay, Audit |
 | **Bitrefill backend** | Real REST API v2: search → policy → invoice → reconcile → redemption → audit |
@@ -99,6 +99,22 @@ The dashboard opens to the **Agent** tab. Click the preset pill — *"I'm travel
 4. **Redemption** — returns the real code, invoice ID, and a **View Txn** link to `bitrefill.com/checkout/{invoice_id}`
 
 Lowering the per-transaction cap in the **Policy** tab below the purchase price will block the same purchase — the policy engine returns a reason in code, not a prompt.
+
+---
+
+## How Bitrefill powers Life OS
+
+Bitrefill is the commerce rail under the agent — the app never ships a fake store. The Life OS backend talks to the **Bitrefill eCommerce REST API v2** (`https://api.bitrefill.com/v2`) server-side, so the API key never reaches the browser.
+
+| Bitrefill API v2 | What Life OS does with it |
+| --- | --- |
+| `GET /products/search`, `GET /products/{id}` | Live catalogue + denominations for the agent and Commerce drawer (eSIMs, gift cards, top-ups), including country, stock and price data |
+| `GET /ping`, `GET /accounts/balance` | `/health/deep` connectivity check and account balance |
+| `POST /invoices` (`payment_method=balance`, `auto_pay=true`) | Creates and pays the order **after** the deterministic policy re-check; idempotent per intent, so retries never double-buy |
+| `GET /invoices/{id}` | Polls until every order reaches a terminal state — payment confirmed is not the same as delivered |
+| order `redemption_info` | Returns the real code / link / PIN to the user and records it in the audit ledger |
+
+In development the agent buys **test products** (`test-gift-card-code`) — free, real API, real redemption codes. Swap in a real `product_id` and fund the account for a live purchase. Each order links back to `bitrefill.com/checkout/{invoice_id}`.
 
 ### Backend API
 
