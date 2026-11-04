@@ -59,8 +59,24 @@ User imports subscription receipts + calendar events → Life OS detects a **Sin
 | Extension | Manifest V3 + React + TS. |
 | Messaging | Telegram Bot API. |
 
+### Frontend dependencies (installed)
+| Package | Version | Purpose |
+| --- | --- | --- |
+| `next` | 16.4.5 | App Router, Turbopack, typed routes |
+| `react` / `react-dom` | 19.3.0 | Server + client components |
+| `tailwindcss` | ^4 | Utility CSS; `@theme inline` for custom tokens |
+| `motion` | ^14.9.1 | Animation (`motion/react`); SSR-safe |
+| `@phosphor-icons/react` | ^2.1.10 | UI icons via SSR entry (`/dist/ssr`) |
+
+### Fonts (via `next/font/google`, loaded in `app/layout.tsx`)
+| Variable | Font | Use |
+| --- | --- | --- |
+| `--font-fraunces` → `font-display` | **Fraunces** | Headlines, display text |
+| `--font-hanken` → `font-body` | **Hanken Grotesk** | Body copy, UI text |
+| `--font-jb-mono` → `font-mono` | **Geist Mono** | Data, labels, audit, code |
+
 ### Repo layout
-- `frontend/` — Next.js 16 app (App Router, typed routes: layouts use `LayoutProps<"/">`). **Next 16 has breaking changes — consult `frontend/node_modules/next/dist/docs/` before non-trivial router work.** Package manager: **Bun** (`bun install`, `bun run dev`).
+- `frontend/` — Next.js 16 App Router. **Next 16 has breaking changes — consult `frontend/node_modules/next/dist/docs/` before non-trivial router work.** Package manager: **Bun** (`bun install`, `bun run dev`).
 - `backend/` — Python service skeleton.
 - `plans/` — execution plans (gitignored; local working docs).
 
@@ -68,9 +84,58 @@ User imports subscription receipts + calendar events → Life OS detects a **Sin
 
 `users` · `connected_sources` · `life_memories` (type, value_json, source, confidence, observed_at, sensitivity) · `subscriptions` · `purchases` · `calendar_events` · `routines` · `trigger_rules` · `autonomy_policies` · `action_intents` (idempotency_key, policy_result, status) · `transactions` (payment_ref, asset, shielded_status, reconciliation_status) · `audit_events`.
 
-## 8. Current milestone: **Initial UI (mocked)**
+## 8. Frontend UI — implemented (mocked)
 
-Build the **landing page + dashboard surface** with **all connections/data fully mocked client-side** (fake OAuth flows, seeded Life Graph, simulated trigger feed, mocked Bitrefill search, simulated shielded-payment demo). No real backend/API calls yet. Design per `plans/` using the `frontend-design` skill. See `plans/01-initial-ui.md`.
+**Status: shipped.** Landing page + full dashboard, all data client-side mocked. No real backend calls.
+
+### Design system — "Obsidian Signal"
+| Token | Value | Tailwind class |
+| --- | --- | --- |
+| `--ink` | `#0A0B0D` | `bg-ink` |
+| `--ink-2` | `#101217` | `bg-ink-2` |
+| `--ink-3` | `#171A21` | `bg-ink-3` |
+| `--mist` | `#E8E6DF` | `text-mist` |
+| `--mist-dim` | `#8A8F99` | `text-mist-dim` |
+| `--signal` | `#F4B728` | `text-signal` / `bg-signal` — live agent, triggers, Zcash nod |
+| `--shielded` | `#35C9A5` | `text-shielded` — confirmed, privacy, settled |
+| `--alert` | `#FF6B57` | `text-alert` — blocked, over-cap, error |
+| `--line` | `rgba(232,230,223,0.08)` | `border-line` |
+
+`globals.css` contains **only**: `@import`, `:root` tokens, `@theme inline` mapping, `html`/`::selection`/scrollbar pseudo-selectors. No `@utility`, no `@keyframes`, no authored SVGs.
+
+### Icon system
+- **Semantic/UI icons** → `@phosphor-icons/react/dist/ssr` (SSR-safe, no `'use client'` cost). Central registry at `app/lib/icons.tsx` exports `ICON` map (key → component). Components reference keys, never glyphs or emoji.
+- **Brand/connector logos** → real downloaded favicons in `public/brands/*.png`. Component `app/components/ui/BrandIcon.tsx` maps brand slug → asset; `manual`/unknown → Phosphor `UserCircle`. **No authored SVGs.**
+  - Brands with favicons: `gmail`, `googlecalendar`, `bitrefill`, `zcash`, `notion`, `spotify`, `netflix`, `github`, `amazonaws`, `amazon`, `airalo`, `singtel`, `bluebottle`.
+- Seed data: `ConnectedSource.brand` (slug → `BrandIcon`), `TriggerRule.iconKey` (key → `ICON`).
+
+### Component tree
+```
+app/
+├── page.tsx                      Landing (server component, assembles client sections)
+├── dashboard/
+│   ├── layout.tsx                Wraps in LifeOSProvider
+│   └── page.tsx                  Renders AppShell
+├── providers/LifeOSProvider.tsx  useReducer context — sources, graph, policy, triggers, payment
+├── lib/
+│   ├── icons.tsx                 Phosphor ICON registry
+│   └── mock/                     types · seed · connectors · triggers · payment
+├── components/
+│   ├── atmosphere/               GrainOverlay · AuroraMesh (motion)
+│   ├── ui/                       Badge · StatusPill · ConfidenceMeter · AnimatedCounter · Card · Modal · Toggle · BrandIcon
+│   ├── Nav.tsx                   Landing nav (fixed, motion entrance)
+│   ├── landing/                  Hero · LifeGraphConstellation · PipelineStrip · TriggerTaxonomy · AutonomyTiers · PrivacyZcash · DemoStory · CTA · Footer
+│   └── dashboard/                AppShell · ConnectedSources · LifeGraphPanel · TriggerFeed · PolicyEditor · CommerceDrawer · ShieldedPaymentDemo · AuditLog
+└── public/brands/                13 real brand favicons (PNG)
+```
+
+### Mocked demo path (verified end-to-end)
+1. `/` landing — Fraunces hero, animated constellation, all scroll sections.
+2. `/dashboard` → Sources tab → Connect Gmail → modal: Authorizing → Importing → Connected.
+3. Life Graph tab → 5 subscriptions with renewal chips + confidence meters + brand logos.
+4. Policy tab → per-tx slider drives "ESIM DEMO: $9 PASSES / BLOCKS" badge live.
+5. Shielded Pay tab → Execute → 5-step animation (intent → broadcast → block #2847193 → confirmed → eSIM ready) → txId + ZIP-321 string. Always labelled **SIMULATED**.
+6. Kill switch in top bar pauses the trigger clock globally.
 
 ## 9. Guardrails to honour even in mock
 
@@ -78,3 +143,9 @@ Build the **landing page + dashboard surface** with **all connections/data fully
 - Show the **propose → policy → authorize → verify** separation in the UI.
 - Never imply the LLM holds keys or that shielded ZEC hides everything from all parties.
 - Label any simulated leg as simulated.
+
+## 10. Plans log
+| Plan | File | Status |
+| --- | --- | --- |
+| Initial UI (mocked) | `plans/01-initial-ui.md` | ✅ done — merged to `main` |
+| Phosphor + brand icons | `plans/02-phosphor-icons.md` | ✅ done — merged from `ui-deepseek` |
