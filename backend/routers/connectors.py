@@ -112,7 +112,7 @@ async def status():
 
 
 @router.post("/fetch", response_model=GmailFetchResult)
-async def fetch(limit: int = Query(5, ge=1, le=5)):
+async def fetch(limit: int = Query(5, ge=1, le=5), poll: bool = Query(False)):
     _require_configured()
     try:
         emails = gmail.fetch_latest(limit)
@@ -122,13 +122,16 @@ async def fetch(limit: int = Query(5, ge=1, le=5)):
         raise HTTPException(status_code=502, detail=f"gmail_fetch_failed: {exc}")
 
     trip_dict = trip.extract_trip(emails)
-    audit.record(
-        action="gmail_fetch",
-        reason=f"Fetched {len(emails)} emails; trip={'yes' if trip_dict else 'no'}",
-        result="success",
-        actor="user",
-        fulfillment_status="gmail",
-    )
+    # Background polling (every few seconds) must not spam the ledger; only record
+    # a routine fetch for explicit user-initiated calls.
+    if not poll:
+        audit.record(
+            action="gmail_fetch",
+            reason=f"Fetched {len(emails)} emails; trip={'yes' if trip_dict else 'no'}",
+            result="success",
+            actor="user",
+            fulfillment_status="gmail",
+        )
     if trip_dict:
         audit.record(
             action="trigger_detected",
