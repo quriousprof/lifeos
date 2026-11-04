@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import db
 from bitrefill.client import BitrefillClient, BitrefillError
 from config import settings
-from routers import commerce, policy, webhooks
+from routers import commerce, connectors, policy, webhooks
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.add_middleware(
 app.include_router(commerce.router)
 app.include_router(policy.router)
 app.include_router(webhooks.router)
+app.include_router(connectors.router)
 
 
 @app.get("/", tags=["meta"])
