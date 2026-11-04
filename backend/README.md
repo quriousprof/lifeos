@@ -16,6 +16,19 @@ uv run main.py           # starts uvicorn on :8000 (RELOAD=1 for autoreload)
 
 `.env` is gitignored. The API key can spend on the account — never commit it or expose it to the frontend.
 
+## Deploy
+
+Both entrypoints work from `backend/`:
+
+```bash
+uv run main.py                    # binds 0.0.0.0:$PORT (default 8000); HOST/RELOAD env
+fastapi run --port "$PORT"        # same app; entrypoint pinned in pyproject.toml
+```
+
+`fastapi run` requires the `fastapi[standard]` extras (installed via `uv sync`). Set
+`CORS_ORIGINS` to the deployed frontend origin, and keep `DATABASE_URL` on a persistent
+volume — the default SQLite file is wiped when an ephemeral container is replaced.
+
 ## The agentic loop
 
 `propose → policy → (re-quote) → create invoice → reconcile → redemption → audit`
