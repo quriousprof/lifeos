@@ -10,8 +10,10 @@ import type {
   BitrefillProduct,
 } from './types'
 
+// Fixed reference date — prevents SSR/client hydration mismatch from Date.now() drift
+const REF = new Date('2026-11-04T10:00:00.000Z').getTime()
 function daysFromNow(n: number): string {
-  return new Date(Date.now() + n * 86400000).toISOString()
+  return new Date(REF + n * 86400000).toISOString()
 }
 
 export const SEED_SOURCES: ConnectedSource[] = [
